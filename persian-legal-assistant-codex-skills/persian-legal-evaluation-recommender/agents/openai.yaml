@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persian Legal Evaluation Recommender"
+  short_description: "Phase 3 lawyer recommendation and RAGAS"
+  default_prompt: "Use $persian-legal-evaluation-recommender to implement Phase 3 recommendation and evaluation."

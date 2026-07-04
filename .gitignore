@@ -1,0 +1,92 @@
+# macOS / editor noise
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Local runtime data
+tmp/
+temp/
+logs/
+outputs/
+artifacts/
+
+# Large AI / data artifacts
+models/
+model_cache/
+checkpoints/
+datasets/
+data/raw/
+data/interim/
+data/processed/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.bin
+*.parquet
+
+# Vector / graph database local state
+qdrant_storage/
+neo4j/data/
+neo4j/logs/
+neo4j/import/
+neo4j/plugins/
+
+# Keep project documentation and local Codex skills versioned.
+!AGENT.md
+!README.md
+!persian-legal-assistant-codex-skills/
+!persian-legal-assistant-codex-skills/**
+

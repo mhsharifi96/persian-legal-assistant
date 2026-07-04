@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persian Legal GraphRAG Ingestion"
+  short_description: "Phase 1 ingestion, chunking, graph retrieval"
+  default_prompt: "Use $persian-legal-graphrag-ingestion to implement Phase 1 of the Persian legal assistant."
