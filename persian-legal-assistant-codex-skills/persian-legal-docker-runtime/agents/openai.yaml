@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persian Legal Docker Runtime"
+  short_description: "Run the legal assistant with Docker Compose"
+  default_prompt: "Use $persian-legal-docker-runtime to containerize and run the Persian Legal Assistant with Docker Compose."

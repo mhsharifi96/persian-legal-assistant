@@ -64,6 +64,7 @@ persian-legal-assistant-codex-skills/
   persian-legal-graphrag-ingestion/
   persian-legal-agentic-core/
   persian-legal-evaluation-recommender/
+  persian-legal-docker-runtime/
 ```
 
 Use them by name in prompts:
@@ -82,6 +83,10 @@ Use $persian-legal-agentic-core to implement Phase 2 LangGraph reasoning.
 
 ```text
 Use $persian-legal-evaluation-recommender to implement Phase 3 recommendation and evaluation.
+```
+
+```text
+Use $persian-legal-docker-runtime to add or update Docker Compose support.
 ```
 
 ## Development Principles
@@ -175,6 +180,29 @@ Implement:
 - Persian-capable judge LLM wrapper;
 - summary report.
 
+### Step 5: Docker Runtime
+
+Use `$persian-legal-docker-runtime` when the project needs repeatable local runtime setup.
+
+Implement:
+
+- `Dockerfile`;
+- `docker-compose.yml`;
+- optional `docker-compose.override.yml`;
+- `.dockerignore`;
+- `.env.example`;
+- service wiring for Django, Postgres, Redis, Qdrant, Neo4j, and optional workers.
+
+Recommended prompt:
+
+```text
+Use $persian-legal-docker-runtime.
+Add Docker and Docker Compose support for local development.
+Include Django web, Postgres, Qdrant, Neo4j, and only add Redis/worker if needed.
+Add .dockerignore and .env.example.
+Verify docker compose config.
+```
+
 ## Testing Strategy
 
 Use three levels of tests:
@@ -202,6 +230,7 @@ Good candidates:
 - `qdrant-retrieval-adapter`
 - `ragas-persian-legal-evaluation`
 - `django-legal-api`
+- `persian-legal-docker-runtime`
 
 Recommended process:
 
@@ -302,4 +331,3 @@ Commit:
 - small golden test fixtures;
 - project-local skills;
 - documentation.
-

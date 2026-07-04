@@ -16,12 +16,22 @@ Before implementing major features, inspect the local skill package:
 persian-legal-assistant-codex-skills/
 ```
 
+Also read:
+
+```text
+memory.md
+project_structure.md
+```
+
+Use `memory.md` for persistent decisions and current phase status. Use `project_structure.md` for expected directories, module responsibilities, and naming conventions.
+
 Use these skills as project-specific instructions:
 
 - `$persian-legal-architecture`: repository, port, adapter, dependency injection, configuration, and testing architecture.
 - `$persian-legal-graphrag-ingestion`: Phase 1, legal document parsing, hierarchical chunking, embeddings, Qdrant, Neo4j, and HybridRetriever.
 - `$persian-legal-agentic-core`: Phase 2, LangGraph reasoning core, query decomposition, retrieval, judge loop, and Persian answer generation.
 - `$persian-legal-evaluation-recommender`: Phase 3, lawyer recommendation and RAGAS-style evaluation.
+- `$persian-legal-docker-runtime`: Docker and Docker Compose setup for local development, testing, and service orchestration.
 
 If a task touches external services or replaceable providers, apply `$persian-legal-architecture` first.
 
@@ -127,6 +137,21 @@ Use RAGAS-style metrics for context precision, faithfulness, answer relevancy, a
 - Do not require live Qdrant, Neo4j, OpenAI, or HuggingFace access for normal unit tests.
 - Test insufficient-context behavior and citation preservation in the agentic core.
 
+## Docker Development
+
+Use `$persian-legal-docker-runtime` when adding or changing Docker support.
+
+The Docker setup should make local development repeatable while keeping provider choices configurable. Do not bake secrets, API keys, `.env` files, downloaded model caches, or large datasets into images.
+
+Expected local stack over time:
+
+- Django/API service;
+- Postgres;
+- Redis when background jobs are introduced;
+- Qdrant for vector retrieval;
+- Neo4j for legal graph retrieval;
+- optional worker service for ingestion and graph extraction.
+
 ## Coding Guidance
 
 - Prefer small, typed, testable services.
@@ -134,4 +159,3 @@ Use RAGAS-style metrics for context precision, faithfulness, answer relevancy, a
 - Normalize Persian/Arabic digits only for IDs and matching; preserve original text for display and citations.
 - Avoid broad refactors unless required by the task.
 - Do not commit secrets, API keys, database passwords, or generated model artifacts.
-
