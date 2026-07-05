@@ -1,0 +1,1 @@
+"""Persian Legal Assistant package."""

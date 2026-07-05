@@ -7,8 +7,8 @@ Use this file as persistent project context for future Codex sessions. Update it
 - Repository: `persian-legal-assistant`
 - Main branch: `main`
 - Remote: `git@github.com:mhsharifi96/persian-legal-assistant.git`
-- Current implementation status: project guidance and local Codex skills are in place; application code has not started yet.
-- Recommended next implementation step: architecture foundation, then Phase 1 chunking.
+- Current implementation status: initial Python package foundation is in place with domain models, application ports, fake adapters, Persian legal hierarchical chunking, ingestion service, graph extraction validation, hybrid retrieval, and unit tests. External provider adapters are not implemented yet.
+- Recommended next implementation step: install test dependencies and continue Phase 1 with real provider adapters behind the existing ports.
 
 ## Project Goal
 
@@ -61,7 +61,7 @@ Do not implement real Qdrant, Neo4j, OpenAI, HuggingFace, or LlamaParse calls ye
 
 ### Phase 0: Foundation
 
-Status: not started.
+Status: started. Initial src/legal_assistant package, domain models, application ports, fake adapters, settings/bootstrap, and tests have been added.
 
 Goal:
 
@@ -74,7 +74,7 @@ Goal:
 
 ### Phase 1: GraphRAG Ingestion
 
-Status: not started.
+Status: started. Persian legal hierarchical chunking, ingestion orchestration, graph extraction validation, and hybrid retriever foundation have been added with fake in-memory adapters.
 
 Goal:
 
