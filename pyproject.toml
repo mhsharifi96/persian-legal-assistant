@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
+    "pyrefly>=1.1.1",
     "pytest>=8.0",
 ]
 
@@ -23,4 +24,10 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 markers = [
     "integration: tests that require external services",
+]
+
+[tool.pyrefly]
+project-includes = [
+    "src/**/*.py",
+    "tests/**/*.py",
 ]

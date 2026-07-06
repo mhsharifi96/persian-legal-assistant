@@ -3,21 +3,32 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import replace
+from typing import Literal, TypedDict
 
 from legal_assistant.domain.models import LegalChunk, LegalDocument, LegalHierarchy
 
 CHUNKING_STRATEGY = "iranian_legal_hierarchical_v1"
 
+HeadingKind = Literal["book", "bab", "fasl", "mabhas", "goftar"]
+EventKind = HeadingKind | Literal["article", "note"]
+
+
+class ChunkEvent(TypedDict):
+    kind: EventKind
+    value: str
+    start: int
+
+
 PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
-HEADING_PATTERNS = {
+HEADING_PATTERNS: dict[HeadingKind, re.Pattern[str]] = {
     "book": re.compile(r"^\s*کتاب\s+(.+)$"),
     "bab": re.compile(r"^\s*باب\s+(.+)$"),
     "fasl": re.compile(r"^\s*فصل\s+(.+)$"),
     "mabhas": re.compile(r"^\s*مبحث\s+(.+)$"),
     "goftar": re.compile(r"^\s*گفتار\s+(.+)$"),
 }
-HEADING_LABELS = {
+HEADING_LABELS: dict[HeadingKind, str] = {
     "book": "کتاب",
     "bab": "باب",
     "fasl": "فصل",
@@ -30,7 +41,7 @@ NOTE_RE = re.compile(r"^\s*تبصره(?:\s+([۰-۹٠-٩0-9]+))?\s*[-:ـ]?\s*(.*)
 
 class PersianLegalHierarchicalChunker:
     def chunk(self, document: LegalDocument) -> list[LegalChunk]:
-        events = list(self._iter_events(document.text))
+        events = self._iter_events(document.text)
         chunks: list[LegalChunk] = []
         hierarchy = LegalHierarchy()
         active_start: int | None = None
@@ -80,7 +91,8 @@ class PersianLegalHierarchicalChunker:
 
         return [chunk for chunk in chunks if chunk.text]
 
-    def _iter_events(self, text: str):
+    def _iter_events(self, text: str) -> list[ChunkEvent]:
+        events: list[ChunkEvent] = []
         for match in re.finditer(r"(?m)^.*$", text):
             line = match.group(0)
             if not line.strip():
@@ -88,31 +100,38 @@ class PersianLegalHierarchicalChunker:
             for kind, pattern in HEADING_PATTERNS.items():
                 heading_match = pattern.match(line)
                 if heading_match:
-                    yield {
-                        "kind": kind,
-                        "value": f"{HEADING_LABELS[kind]} {heading_match.group(1).strip()}",
-                        "start": match.start(),
-                    }
+                    events.append(
+                        {
+                            "kind": kind,
+                            "value": f"{HEADING_LABELS[kind]} {heading_match.group(1).strip()}",
+                            "start": match.start(),
+                        }
+                    )
                     break
             else:
                 article_match = ARTICLE_RE.match(line)
                 if article_match:
-                    yield {
-                        "kind": "article",
-                        "value": article_match.group(1),
-                        "start": match.start(),
-                    }
+                    events.append(
+                        {
+                            "kind": "article",
+                            "value": article_match.group(1),
+                            "start": match.start(),
+                        }
+                    )
                     continue
                 note_match = NOTE_RE.match(line)
                 if note_match:
-                    yield {
-                        "kind": "note",
-                        "value": note_match.group(1),
-                        "start": match.start(),
-                    }
+                    events.append(
+                        {
+                            "kind": "note",
+                            "value": note_match.group(1) or "",
+                            "start": match.start(),
+                        }
+                    )
+        return events
 
     def _apply_heading(
-        self, hierarchy: LegalHierarchy, kind: str, value: str
+        self, hierarchy: LegalHierarchy, kind: HeadingKind, value: str
     ) -> LegalHierarchy:
         if kind == "book":
             return LegalHierarchy(book=value)

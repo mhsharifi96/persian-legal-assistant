@@ -2,7 +2,7 @@ from legal_assistant.domain.models import LegalDocument
 from legal_assistant.infrastructure.chunkers import PersianLegalHierarchicalChunker
 
 
-def test_persian_legal_chunker_preserves_hierarchy_and_note_metadata():
+def test_persian_legal_chunker_preserves_hierarchy_and_note_metadata() -> None:
     text = """کتاب اول
 باب اول
 فصل دوم
@@ -35,7 +35,7 @@ def test_persian_legal_chunker_preserves_hierarchy_and_note_metadata():
     assert "تبصره 1" in chunks[1].citations[0]
 
 
-def test_persian_legal_chunker_handles_arabic_digits():
+def test_persian_legal_chunker_handles_arabic_digits() -> None:
     document = LegalDocument(
         id="sample-law",
         title="قانون نمونه",

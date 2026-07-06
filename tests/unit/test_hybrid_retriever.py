@@ -7,7 +7,7 @@ from legal_assistant.infrastructure.fakes import (
 )
 
 
-def test_hybrid_retriever_merges_vector_results_with_graph_neighbors():
+def test_hybrid_retriever_merges_vector_results_with_graph_neighbors() -> None:
     embeddings = FakeEmbeddingModel()
     vector_store = InMemoryVectorStoreRepository()
     graph_store = InMemoryGraphRepository()

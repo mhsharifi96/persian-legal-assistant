@@ -81,12 +81,16 @@ class GraphExtractionService:
         if not isinstance(data, dict):
             raise GraphExtractionError("Graph extraction response must be an object.")
 
-        entities = tuple(self._parse_entity(item) for item in data.get("entities", []))
+        entities_raw = data.get("entities", [])
+        relations_raw = data.get("relationships", data.get("relations", []))
+        if not isinstance(entities_raw, list):
+            raise GraphExtractionError("Graph extraction entities must be a list.")
+        if not isinstance(relations_raw, list):
+            raise GraphExtractionError("Graph extraction relationships must be a list.")
+
+        entities = tuple(self._parse_entity(item) for item in entities_raw)
         entity_ids = {entity.id for entity in entities}
-        relations = tuple(
-            self._parse_relation(item, entity_ids)
-            for item in data.get("relationships", data.get("relations", []))
-        )
+        relations = tuple(self._parse_relation(item, entity_ids) for item in relations_raw)
         return GraphExtraction(entities=entities, relations=relations)
 
     def _parse_entity(self, item: Any) -> GraphEntity:

@@ -10,7 +10,7 @@ from legal_assistant.infrastructure.fakes import (
 )
 
 
-def test_ingestion_parses_chunks_embeds_and_writes_graph():
+def test_ingestion_parses_chunks_embeds_and_writes_graph() -> None:
     document = LegalDocument(
         id="law",
         title="قانون نمونه",

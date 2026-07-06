@@ -137,6 +137,15 @@ Use RAGAS-style metrics for context precision, faithfulness, answer relevancy, a
 - Do not require live Qdrant, Neo4j, OpenAI, or HuggingFace access for normal unit tests.
 - Test insufficient-context behavior and citation preservation in the agentic core.
 
+## Type Checking
+
+- Use Pyrefly for static type checking.
+- Initialize/update Pyrefly configuration with `pyrefly init` when project structure changes.
+- Run `pyrefly check` before committing Python changes.
+- All function inputs and outputs must be explicitly typed.
+- Prefer Pydantic models or typed dataclasses for structured cross-layer data.
+- Do not silence Pyrefly errors with ignore comments unless there is a documented reason.
+
 ## Docker Development
 
 Use `$persian-legal-docker-runtime` when adding or changing Docker support.

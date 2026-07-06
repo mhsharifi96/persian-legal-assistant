@@ -17,7 +17,7 @@ def _chunk() -> LegalChunk:
     )
 
 
-def test_graph_extraction_validates_structured_output():
+def test_graph_extraction_validates_structured_output() -> None:
     llm = FakeLLM(
         [
             {
@@ -40,7 +40,7 @@ def test_graph_extraction_validates_structured_output():
     assert extraction.entities[0].name == "ماده ۱۰ قانون نمونه"
 
 
-def test_graph_extraction_retries_once_for_repair():
+def test_graph_extraction_retries_once_for_repair() -> None:
     llm = FakeLLM(
         [
             {"entities": [{"id": "x", "type": "FreeForm", "name": "bad"}]},
@@ -54,7 +54,7 @@ def test_graph_extraction_retries_once_for_repair():
     assert len(llm.messages) == 2
 
 
-def test_graph_extraction_raises_after_failed_repair():
+def test_graph_extraction_raises_after_failed_repair() -> None:
     llm = FakeLLM(
         [
             {"entities": [{"id": "x", "type": "FreeForm", "name": "bad"}]},
