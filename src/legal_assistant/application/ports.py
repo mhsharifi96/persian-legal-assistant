@@ -3,9 +3,12 @@ from __future__ import annotations
 from typing import Any, Protocol, Sequence
 
 from legal_assistant.domain.models import (
+    EvaluationRecord,
     GraphEntity,
     GraphExtraction,
     GraphRelation,
+    IngestionErrorRecord,
+    LawyerProfile,
     LegalChunk,
     LegalDocument,
     RetrievedContext,
@@ -49,7 +52,7 @@ class GraphRepository(Protocol):
     def upsert_relations(self, relations: Sequence[GraphRelation]) -> None: ...
 
     def expand_context(
-        self, chunk_ids: Sequence[str], *, depth: int
+        self, chunk_ids: Sequence[str], *, depth: int, limit: int | None = None
     ) -> list[RetrievedContext]: ...
 
 
@@ -76,6 +79,21 @@ class HybridRetrieverPort(Protocol):
     ) -> list[RetrievedContext]: ...
 
 
+class CrewAnalysisPort(Protocol):
+    """Optional multi-agent (e.g. CrewAI) debate over complex disputes.
+
+    Wrapped behind an adapter so the core graph works without it. Given the
+    user query and the assembled context, it returns supplementary analysis
+    text that ``generation_node`` may fold into its answer.
+    """
+
+    def analyze(self, query: str, context: Sequence[RetrievedContext]) -> str: ...
+
+
+class IngestionErrorSink(Protocol):
+    def record(self, error: IngestionErrorRecord) -> None: ...
+
+
 class CheckpointRepository(Protocol):
     def save(self, key: str, value: dict[str, Any]) -> None: ...
 
@@ -83,8 +101,10 @@ class CheckpointRepository(Protocol):
 
 
 class LawyerRepository(Protocol):
-    pass
+    def list_lawyers(
+        self, *, filters: dict[str, Any] | None = None
+    ) -> list[LawyerProfile]: ...
 
 
 class EvaluationRepository(Protocol):
-    pass
+    def load_records(self) -> list[EvaluationRecord]: ...

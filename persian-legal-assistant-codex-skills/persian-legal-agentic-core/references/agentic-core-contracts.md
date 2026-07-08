@@ -67,6 +67,10 @@ Judge output:
 }
 ```
 
+## Citation Grounding
+
+`generation_node` must attach citations as structured objects referencing the specific `chunk_id`(s) of `retrieved_context` it drew on, e.g. `{"chunk_id": "civil-code:10:article:ab12cd", "text": "قانون مدنی، ماده ۱۰"}`, not only the formatted Persian citation string. `judge_node` should verify citation coverage by checking that every cited `chunk_id` is present in `retrieved_context` — checking this by ID is reliable; checking it by string-matching the rendered Persian citation text against context is fragile against formatting/normalization differences and should be avoided as the primary grounding check.
+
 ## Generation Contract
 
 Formal Persian answer structure:
@@ -104,6 +108,8 @@ Optional CrewAnalysisPort
 ```
 
 Do not instantiate OpenAI clients, Qdrant clients, Neo4j drivers, or CrewAI crews inside node logic unless those are inside adapters.
+
+If Phase 1 ports (`LLMPort`, `HybridRetrieverPort`) are still synchronous when this phase starts, convert them to `async def` before implementing `retrieval_node`, rather than parallelizing sync calls with a thread pool inside the graph — decomposition's concurrent subquery retrieval is core to this phase's design, and async ports keep the concurrency at the port boundary instead of scattered through node logic.
 
 ## Testing
 

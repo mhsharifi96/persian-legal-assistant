@@ -83,7 +83,7 @@ Read `references/ports-and-adapters.md` before implementing or refactoring these
 
 ## Configuration
 
-Use typed settings for provider selection. Do not hard-code model names, collection names, Neo4j labels, OpenAI model names, API keys, or database URLs inside services.
+Use typed settings for provider selection, loaded from environment variables (e.g. `pydantic-settings` or an equivalent typed env loader) rather than a plain dataclass with hard-coded defaults — a `Settings` object whose provider fields default straight to `"fake"`/`"memory"` with no env-loading path cannot actually be reconfigured for a real deployment without editing source. Do not hard-code model names, collection names, Neo4j labels, OpenAI model names, API keys, or database URLs inside services.
 
 Example setting names:
 
@@ -94,6 +94,21 @@ VECTORSTORE_PROVIDER=qdrant
 GRAPHSTORE_PROVIDER=neo4j
 LLM_PROVIDER=openai
 LEGAL_JURISDICTION=IR
+```
+
+As soon as a second real adapter exists for any one port, wire bootstrap through a provider registry (a dict mapping provider name to builder) instead of an `if/elif`/raise chain, so adding a provider is a one-line registry entry rather than an edit to a growing conditional:
+
+```python
+EMBEDDING_BUILDERS: dict[str, Callable[[Settings], EmbeddingModelPort]] = {
+    "fake": lambda s: FakeEmbeddingModel(),
+    "hf": lambda s: HuggingFaceEmbeddingModel(s.embedding_model_name),
+}
+
+def build_embedding_model(settings: Settings) -> EmbeddingModelPort:
+    try:
+        return EMBEDDING_BUILDERS[settings.embedding_provider](settings)
+    except KeyError:
+        raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
 ```
 
 ## Acceptance Checks

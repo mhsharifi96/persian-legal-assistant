@@ -7,8 +7,10 @@ Use this file as persistent project context for future Codex sessions. Update it
 - Repository: `persian-legal-assistant`
 - Main branch: `main`
 - Remote: `git@github.com:mhsharifi96/persian-legal-assistant.git`
-- Current implementation status: initial Python package foundation is in place with domain models, application ports, fake adapters, Persian legal hierarchical chunking, ingestion service, graph extraction validation, hybrid retrieval, and unit tests. External provider adapters are not implemented yet.
-- Recommended next implementation step: install test dependencies and continue Phase 1 with real provider adapters behind the existing ports.
+- Current implementation status: Phases 1 (GraphRAG ingestion), 2 (agentic core), and 3 (lawyer recommendation + RAGAS-style evaluation) are all implemented against fake adapters. 42 unit tests passing; `pyrefly check` clean. Phase 3 adds `LawyerRecommendationService` (weighted semantic+success+location score, configurable weights, Persian rationale), `application/evaluation/` (`LegalAnswerEvaluator` + `EvaluationService` with LLM-judge metrics through `LLMPort`, deterministic citation grounding, stdlib aggregation, pandas-free `to_records()`), filled `LawyerRepository`/`EvaluationRepository` ports, in-memory + JSONL repositories, and bootstrap builders. Real external provider adapters (Qdrant, Neo4j, HuggingFace, LlamaParse, real LLM) remain the main outstanding work.
+- (historical) Phase 1 and Phase 2 detail: Phase 1: domain models, application ports, fake adapters, Persian legal hierarchical chunking, ingestion service with per-chunk error isolation, graph extraction validation, RRF hybrid retrieval, env-driven `Settings.from_env()`, provider-registry `bootstrap.py`. Phase 2: dependency-free typed reasoning graph in `application/agentic/` (`AgentState`, router/decomposer/judge/`PersianAnswerGenerator` behind Protocols, `LegalQAGraph` with bounded self-reflection loop, chunk_id citation grounding, concurrent subquery retrieval via a single ThreadPoolExecutor boundary), `Citation` domain model, optional `CrewAnalysisPort`, `TaggedFakeLLM`, and `build_agentic_graph` wiring. 29 unit tests passing; `pyrefly check` clean. External provider adapters (real Qdrant, Neo4j, HuggingFace, LlamaParse, OpenAI/LLM) are still not implemented.
+- Key Phase 2 decisions: (1) No LangGraph dependency — the core stays vendor-independent (`dependencies = []`); a future LangGraph adapter can wrap the node functions. (2) Ports kept synchronous; concurrency confined to `retrieval_node`'s thread pool rather than an async rewrite of Phase 1.
+- Recommended next implementation step: implement the first real infrastructure adapter (e.g. `HuggingFaceEmbeddingModel` behind `EMBEDDING_PROVIDER=hf` or a real `LLMPort` behind `LLM_PROVIDER`) and register it in the corresponding `*_BUILDERS` registry, or begin Phase 3 (lawyer recommendation + RAGAS-style evaluation).
 
 ## Project Goal
 
@@ -74,7 +76,13 @@ Goal:
 
 ### Phase 1: GraphRAG Ingestion
 
-Status: started. Persian legal hierarchical chunking, ingestion orchestration, graph extraction validation, and hybrid retriever foundation have been added with fake in-memory adapters.
+Status: core foundation complete against fake in-memory adapters; real provider adapters (Qdrant, Neo4j, HuggingFace, LlamaParse) still pending. Persian legal hierarchical chunking, ingestion orchestration, graph extraction validation, and hybrid retriever foundation have been added, plus:
+
+- Recursive splitting for articles/notes exceeding a token budget, preserving hierarchy metadata and adding `part_index`/`part_count`.
+- Reciprocal Rank Fusion in `HybridRetriever` (vector and graph scores are not comparable and must not be sorted together as raw values) with a configurable graph fan-out cap.
+- Structured `IngestionErrorRecord`s with per-chunk isolation for both embedding batch failures and graph extraction failures (a single bad chunk no longer aborts the whole document).
+- Graph extraction repair prompts now include the specific validation error, not just the raw prior response.
+- `Settings.from_env()` for env-driven configuration and a provider-registry pattern in `bootstrap.py`.
 
 Goal:
 
@@ -95,7 +103,7 @@ Minimum hierarchy:
 
 ### Phase 2: Agentic Core
 
-Status: not started.
+Status: implemented against fake ports. Dependency-free typed state machine (`application/agentic/`) with router → decompose → retrieve → judge → generate, bounded retry loop with limited-answer fallback, chunk_id-grounded citations, formal Persian answer template, concurrent subquery retrieval (thread pool), optional CrewAI adapter hook, and checkpoint hook. Real LLM adapter still pending (LLM_BUILDERS currently only has `fake`).
 
 Goal:
 
@@ -109,7 +117,7 @@ Goal:
 
 ### Phase 3: Recommendation and Evaluation
 
-Status: not started.
+Status: implemented against fake ports/repositories. `LawyerRecommendationService` (transparent weighted score, deterministic tie-breaking, Persian rationale) and `application/evaluation/` (context_precision/faithfulness/answer_relevancy/jurisdiction via injected judge `LLMPort`, deterministic citation grounding, stdlib aggregation + Persian summary + `to_records()`). In-memory and JSONL repositories provided; a real SQL/API/Pandas lawyer repo and a real judge LLM adapter are still pending.
 
 Goal:
 

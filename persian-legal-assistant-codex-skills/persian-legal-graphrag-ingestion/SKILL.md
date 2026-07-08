@@ -53,7 +53,10 @@ Keep labels and relation names configurable.
 ## Acceptance Checks
 
 - A sample law text containing `ماده` and multiple `تبصره` entries produces separate chunks with correct lineage.
+- An article/note whose text exceeds the configured token budget is split recursively into subchunks that each retain full parent hierarchy metadata plus `part_index`/`part_count`.
+- At least one golden test runs against realistically messy parser output (page headers/footers, page-break artifacts, justified-text line wraps) rather than only clean hand-written synthetic text, since real `LlamaParse` output will not look like the clean fixtures.
 - The embedding model can be replaced by changing settings and adapter wiring.
 - Qdrant and Neo4j SDK calls do not appear in application services.
-- Graph extraction validates JSON schema and handles malformed LLM output gracefully.
-- `HybridRetriever.retrieve()` returns contexts with text, vector score, hierarchy, citations, and graph neighbors.
+- Graph extraction validates JSON schema and handles malformed LLM output gracefully; the repair retry prompt includes the specific validation error, not just the raw prior response.
+- A chunk that fails graph extraction (even after repair) is recorded as a structured error and does not abort extraction for the rest of the document's chunks.
+- `HybridRetriever.retrieve()` returns contexts with text, vector score, hierarchy, citations, and graph neighbors, and its merge step fuses vector and graph results by rank (e.g. RRF) rather than sorting incomparable raw scores together.
