@@ -14,6 +14,12 @@ from legal_assistant.domain.models import (
     RetrievedContext,
 )
 
+# NOTE: The *write* ports below back the admin UI and API (see the
+# ``persian-legal-admin-api`` skill). They are kept separate from the read
+# ports above so a service that only reads cannot mutate, and so unit tests can
+# supply read-only fakes. One adapter may implement both a read and a write
+# port.
+
 
 class DocumentParserPort(Protocol):
     def parse(self, source_uri: str) -> list[LegalDocument]: ...
@@ -106,5 +112,38 @@ class LawyerRepository(Protocol):
     ) -> list[LawyerProfile]: ...
 
 
+class LawyerWriteRepository(Protocol):
+    """Write side of the lawyer data source, used by the admin/API."""
+
+    def get_lawyer(self, lawyer_id: str) -> LawyerProfile | None: ...
+
+    def upsert_lawyer(self, lawyer: LawyerProfile) -> LawyerProfile: ...
+
+    def delete_lawyer(self, lawyer_id: str) -> bool: ...
+
+
+class DocumentStore(Protocol):
+    """Read/browse access to ingested legal documents and their chunks."""
+
+    def save_document(
+        self, document: LegalDocument, chunks: Sequence[LegalChunk]
+    ) -> None: ...
+
+    def list_documents(
+        self, *, filters: dict[str, Any] | None = None
+    ) -> list[LegalDocument]: ...
+
+    def list_chunks(
+        self,
+        *,
+        document_id: str | None = None,
+        filters: dict[str, Any] | None = None,
+    ) -> list[LegalChunk]: ...
+
+
 class EvaluationRepository(Protocol):
     def load_records(self) -> list[EvaluationRecord]: ...
+
+
+class EvaluationWriteRepository(Protocol):
+    def append_record(self, record: EvaluationRecord) -> None: ...

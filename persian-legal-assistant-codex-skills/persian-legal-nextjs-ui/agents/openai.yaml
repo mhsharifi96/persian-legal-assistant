@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persian Legal Next.js UI"
+  short_description: "Next.js RTL frontend over the DRF API"
+  default_prompt: "Use $persian-legal-nextjs-ui to build the Persian, RTL Next.js frontend that consumes the DRF API over real data."

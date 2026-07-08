@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persian Legal Admin & API"
+  short_description: "Django admin + DRF API over real data"
+  default_prompt: "Use $persian-legal-admin-api to build the Django admin UI and DRF API over real persisted data (no fakes)."

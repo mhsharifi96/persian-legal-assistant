@@ -1,0 +1,16 @@
+# Local-only dev overrides (auto-merged by `docker compose`).
+# Bind-mounts source for live editing/reload without rebuilding the image.
+services:
+  web:
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./manage.py:/app/manage.py
+    environment:
+      DJANGO_DEBUG: "true"
+
+  web-ui:
+    # The frontend is a production build in the image; for hot-reload dev run
+    # `npm run dev` locally against API_BASE_URL=http://localhost:8000 instead.
+    environment:
+      NODE_ENV: production

@@ -32,6 +32,8 @@ Use these skills as project-specific instructions:
 - `$persian-legal-agentic-core`: Phase 2, LangGraph reasoning core, query decomposition, retrieval, judge loop, and Persian answer generation.
 - `$persian-legal-evaluation-recommender`: Phase 3, lawyer recommendation and RAGAS-style evaluation.
 - `$persian-legal-docker-runtime`: Docker and Docker Compose setup for local development, testing, and service orchestration.
+- `$persian-legal-admin-api`: Django admin UI and DRF API over real persisted data (ORM repositories, no fake adapters in the delivered app).
+- `$persian-legal-nextjs-ui`: Next.js (App Router, TypeScript) RTL/Persian web frontend that consumes the DRF API over HTTP against real data.
 
 If a task touches external services or replaceable providers, apply `$persian-legal-architecture` first.
 

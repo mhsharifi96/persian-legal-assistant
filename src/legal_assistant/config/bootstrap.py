@@ -12,7 +12,9 @@ from legal_assistant.application.agentic.graph import LegalQAGraph
 from legal_assistant.application.evaluation.metrics import LegalAnswerEvaluator
 from legal_assistant.application.evaluation.service import EvaluationService
 from legal_assistant.application.ports import (
+    DocumentStore,
     EmbeddingModelPort,
+    EvaluationRepository,
     GraphRepository,
     LawyerRepository,
     LLMPort,
@@ -26,9 +28,16 @@ from legal_assistant.application.services.lawyer_recommendation import (
 from legal_assistant.config.settings import Settings
 from legal_assistant.infrastructure.fakes import (
     FakeEmbeddingModel,
+    InMemoryDocumentStore,
+    InMemoryEvaluationRepository,
     InMemoryGraphRepository,
+    InMemoryLawyerWriteRepository,
     InMemoryVectorStoreRepository,
     TaggedFakeLLM,
+)
+from legal_assistant.infrastructure.repositories.jsonl import (
+    JsonlEvaluationRepository,
+    JsonlLawyerRepository,
 )
 
 # Provider registries: adding a real adapter is a new dict entry here, not a
@@ -48,6 +57,74 @@ GRAPHSTORE_BUILDERS: dict[str, Callable[[Settings], GraphRepository]] = {
 LLM_BUILDERS: dict[str, Callable[[Settings], LLMPort]] = {
     "fake": lambda settings: TaggedFakeLLM(),
 }
+
+
+# --- Admin/API persistence registries ---------------------------------------
+# The "orm" builders are imported lazily inside the lambda so that importing
+# bootstrap never requires Django to be configured (unit tests, ingestion CLI).
+
+
+def _orm_lawyer_repository(settings: Settings) -> LawyerRepository:
+    from legal_assistant.infrastructure.orm.repositories import OrmLawyerRepository
+
+    return OrmLawyerRepository()
+
+
+def _orm_document_store(settings: Settings) -> DocumentStore:
+    from legal_assistant.infrastructure.orm.repositories import OrmDocumentStore
+
+    return OrmDocumentStore()
+
+
+def _orm_evaluation_repository(settings: Settings) -> EvaluationRepository:
+    from legal_assistant.infrastructure.orm.repositories import OrmEvaluationRepository
+
+    return OrmEvaluationRepository()
+
+
+LAWYER_REPO_BUILDERS: dict[str, Callable[[Settings], LawyerRepository]] = {
+    "memory": lambda settings: InMemoryLawyerWriteRepository(),
+    "jsonl": lambda settings: JsonlLawyerRepository(settings.lawyer_data_path),
+    "orm": _orm_lawyer_repository,
+}
+
+DOCUMENT_STORE_BUILDERS: dict[str, Callable[[Settings], DocumentStore]] = {
+    "memory": lambda settings: InMemoryDocumentStore(),
+    "orm": _orm_document_store,
+}
+
+EVALUATION_REPO_BUILDERS: dict[str, Callable[[Settings], EvaluationRepository]] = {
+    "memory": lambda settings: InMemoryEvaluationRepository(),
+    "jsonl": lambda settings: JsonlEvaluationRepository(settings.evaluation_data_path),
+    "orm": _orm_evaluation_repository,
+}
+
+
+def build_lawyer_repository(settings: Settings) -> LawyerRepository:
+    try:
+        return LAWYER_REPO_BUILDERS[settings.lawyer_repo_provider](settings)
+    except KeyError:
+        raise ValueError(
+            f"Unsupported lawyer repo provider: {settings.lawyer_repo_provider}"
+        )
+
+
+def build_document_store(settings: Settings) -> DocumentStore:
+    try:
+        return DOCUMENT_STORE_BUILDERS[settings.document_store_provider](settings)
+    except KeyError:
+        raise ValueError(
+            f"Unsupported document store provider: {settings.document_store_provider}"
+        )
+
+
+def build_evaluation_repository(settings: Settings) -> EvaluationRepository:
+    try:
+        return EVALUATION_REPO_BUILDERS[settings.evaluation_repo_provider](settings)
+    except KeyError:
+        raise ValueError(
+            f"Unsupported evaluation repo provider: {settings.evaluation_repo_provider}"
+        )
 
 
 def build_embedding_model(settings: Settings) -> EmbeddingModelPort:

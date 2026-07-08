@@ -1,0 +1,63 @@
+.git
+.gitignore
+
+# Secrets and env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# Python caches / virtualenvs
+.venv
+venv
+env
+ENV
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.pyre
+.coverage
+coverage.xml
+htmlcov
+
+# Local databases
+db.sqlite3
+db.sqlite3-journal
+
+# Frontend (built in its own image with context ./web)
+web/node_modules
+web/.next
+web/out
+node_modules
+
+# Django collected/static + media
+staticfiles
+media
+
+# Large AI / data artifacts
+models
+model_cache
+checkpoints
+datasets
+data/raw
+data/interim
+data/processed
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Vector / graph local state
+qdrant_storage
+neo4j/data
+neo4j/logs
+
+# Docs / editor
+.vscode
+.idea
+.DS_Store
