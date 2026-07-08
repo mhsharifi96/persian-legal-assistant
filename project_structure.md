@@ -212,7 +212,9 @@ persian-legal-assistant-codex-skills/
 ├── persian-legal-graphrag-ingestion/
 ├── persian-legal-agentic-core/
 ├── persian-legal-evaluation-recommender/
-└── persian-legal-docker-runtime/
+├── persian-legal-docker-runtime/
+├── persian-legal-admin-api/
+└── persian-legal-nextjs-ui/
 ```
 
 Each skill should contain:

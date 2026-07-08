@@ -266,11 +266,86 @@ class InMemoryLawyerRepository:
 
 
 class InMemoryEvaluationRepository:
-    def __init__(self, records: Sequence[EvaluationRecord]) -> None:
+    def __init__(self, records: Sequence[EvaluationRecord] = ()) -> None:
         self._records = list(records)
 
     def load_records(self) -> list[EvaluationRecord]:
         return list(self._records)
+
+    def append_record(self, record: EvaluationRecord) -> None:
+        self._records.append(record)
+
+
+class InMemoryDocumentStore:
+    """In-memory ``DocumentStore`` for tests and the default (empty) profile."""
+
+    def __init__(self) -> None:
+        self._documents: dict[str, LegalDocument] = {}
+        self._chunks: dict[str, LegalChunk] = {}
+
+    def save_document(
+        self, document: LegalDocument, chunks: Sequence[LegalChunk]
+    ) -> None:
+        self._documents[document.id] = document
+        for chunk in chunks:
+            self._chunks[chunk.id] = chunk
+
+    def list_documents(
+        self, *, filters: dict[str, Any] | None = None
+    ) -> list[LegalDocument]:
+        documents = list(self._documents.values())
+        if not filters:
+            return documents
+        return [
+            doc
+            for doc in documents
+            if all(getattr(doc, k, doc.metadata.get(k)) == v for k, v in filters.items())
+        ]
+
+    def list_chunks(
+        self,
+        *,
+        document_id: str | None = None,
+        filters: dict[str, Any] | None = None,
+    ) -> list[LegalChunk]:
+        chunks = list(self._chunks.values())
+        if document_id is not None:
+            chunks = [chunk for chunk in chunks if chunk.document_id == document_id]
+        if filters:
+            chunks = [
+                chunk
+                for chunk in chunks
+                if all(chunk.metadata.get(k) == v for k, v in filters.items())
+            ]
+        return chunks
+
+
+class InMemoryLawyerWriteRepository(InMemoryLawyerRepository):
+    """Read+write in-memory lawyer repository for tests."""
+
+    def __init__(self, profiles: Sequence[LawyerProfile] = ()) -> None:
+        super().__init__(profiles)
+
+    def get_lawyer(self, lawyer_id: str) -> LawyerProfile | None:
+        for profile in self._profiles:
+            if profile.lawyer_id == lawyer_id:
+                return profile
+        return None
+
+    def upsert_lawyer(self, lawyer: LawyerProfile) -> LawyerProfile:
+        for index, profile in enumerate(self._profiles):
+            if profile.lawyer_id == lawyer.lawyer_id:
+                self._profiles[index] = lawyer
+                return lawyer
+        self._profiles.append(lawyer)
+        return lawyer
+
+    def delete_lawyer(self, lawyer_id: str) -> bool:
+        for index, profile in enumerate(self._profiles):
+            if profile.lawyer_id == lawyer_id:
+                del self._profiles[index]
+                return True
+        return False
 
 
 class InMemoryCheckpointRepository:

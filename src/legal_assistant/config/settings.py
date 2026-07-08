@@ -5,6 +5,12 @@ from dataclasses import dataclass
 from typing import Mapping
 
 
+def _env_bool(value: str | None, default: bool) -> bool:
+    if value is None:
+        return default
+    return value.strip().casefold() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     jurisdiction: str = "IR"
@@ -31,6 +37,17 @@ class Settings:
     rec_location_weight: float = 0.2
     rec_top_n: int = 5
     eval_failure_threshold: float = 0.5
+    # Admin/API persistence providers. Defaults are test-safe (in-memory); the
+    # Django/API deployment profile sets these to "orm" via environment so the
+    # delivered app runs on the real database. See persian-legal-admin-api.
+    lawyer_repo_provider: str = "memory"
+    evaluation_repo_provider: str = "memory"
+    document_store_provider: str = "memory"
+    lawyer_data_path: str = ""
+    evaluation_data_path: str = ""
+    # When true, the /ask API refuses to answer with a fake LLM provider instead
+    # of returning a non-real answer (production profile).
+    api_require_real_llm: bool = False
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -93,5 +110,21 @@ class Settings:
             rec_top_n=int(source.get("REC_TOP_N", defaults.rec_top_n)),
             eval_failure_threshold=float(
                 source.get("EVAL_FAILURE_THRESHOLD", defaults.eval_failure_threshold)
+            ),
+            lawyer_repo_provider=source.get(
+                "LAWYER_REPO_PROVIDER", defaults.lawyer_repo_provider
+            ),
+            evaluation_repo_provider=source.get(
+                "EVALUATION_REPO_PROVIDER", defaults.evaluation_repo_provider
+            ),
+            document_store_provider=source.get(
+                "DOCUMENT_STORE_PROVIDER", defaults.document_store_provider
+            ),
+            lawyer_data_path=source.get("LAWYER_DATA_PATH", defaults.lawyer_data_path),
+            evaluation_data_path=source.get(
+                "EVALUATION_DATA_PATH", defaults.evaluation_data_path
+            ),
+            api_require_real_llm=_env_bool(
+                source.get("API_REQUIRE_REAL_LLM"), defaults.api_require_real_llm
             ),
         )
