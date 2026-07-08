@@ -1,0 +1,92 @@
+# Persian Legal Assistant — local development stack.
+# Services for the current phase: Django API/admin (web), Postgres (real DB),
+# and the Next.js frontend (web-ui). Retrieval services (qdrant, neo4j) and
+# background jobs (redis, worker) are intentionally omitted until real adapters
+# for those ports exist — see the commented block at the bottom.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${DB_NAME:-persian_legal_assistant}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-persian_legal_assistant}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-insecure-key-change-me}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,web}
+      DB_ENGINE: postgres
+      DB_NAME: ${DB_NAME:-persian_legal_assistant}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      # Real data for the delivered app (env-driven, not hard-coded in code).
+      LAWYER_REPO_PROVIDER: ${LAWYER_REPO_PROVIDER:-orm}
+      EVALUATION_REPO_PROVIDER: ${EVALUATION_REPO_PROVIDER:-orm}
+      DOCUMENT_STORE_PROVIDER: ${DOCUMENT_STORE_PROVIDER:-orm}
+      LEGAL_JURISDICTION: ${LEGAL_JURISDICTION:-IR}
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      API_REQUIRE_REAL_LLM: ${API_REQUIRE_REAL_LLM:-false}
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web-ui:
+    build:
+      context: ./web
+      args:
+        SITE_URL: ${SITE_URL:-http://localhost:3000}
+    environment:
+      # Server-side base URL the frontend uses to reach the API (service name).
+      API_BASE_URL: http://web:8000
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+    ports:
+      - "${UI_PORT:-3000}:3000"
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+# --- Future services (add when real adapters/background jobs exist) ---------
+#  qdrant:
+#    image: qdrant/qdrant:latest
+#    ports: ["6333:6333"]
+#    volumes: ["qdrant_data:/qdrant/storage"]
+#  neo4j:
+#    image: neo4j:5
+#    environment:
+#      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-please-change}
+#    ports: ["7474:7474", "7687:7687"]
+#    volumes: ["neo4j_data:/data"]
+#  redis:
+#    image: redis:7
+#    ports: ["6379:6379"]
+#  worker:
+#    build: { context: . }
+#    command: python -m legal_assistant.interfaces.worker  # when it exists
+#    depends_on: [redis, postgres]

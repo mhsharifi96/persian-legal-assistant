@@ -8,17 +8,136 @@ The project target is a modular Persian LegalTech system for Iranian law. It wil
 
 ## Repository Status
 
-This repository currently contains project instructions and local Codex skills. The implementation should start from the architecture and Phase 1 ingestion foundation.
+Implemented so far (against fake/in-memory adapters plus real persistence for the app layer):
+
+- **Phase 1 – GraphRAG ingestion** foundation: Persian legal hierarchical chunking, ingestion service, graph extraction, RRF hybrid retriever (fake embedding/vector/graph adapters).
+- **Phase 2 – Agentic core**: dependency-free reasoning graph (router → decompose → retrieve → judge → generate) with bounded self-reflection and citation grounding.
+- **Phase 3 – Recommendation & evaluation**: weighted lawyer recommendation and RAGAS-style evaluation.
+- **Admin UI + API**: Django 5 admin and a Django REST Framework API over a **real database** (Django ORM adapters).
+- **Web frontend**: a Next.js 14 (App Router, TypeScript, Tailwind) RTL/Persian UI that consumes the API.
+- **Docker**: `web` (Django) + `postgres` + `web-ui` (Next.js) via Docker Compose.
+
+Still outstanding: real external provider adapters (Qdrant, Neo4j, HuggingFace, LlamaParse, a real LLM) and a real Iranian legal/lawyer dataset.
 
 Important files and folders:
 
 ```text
-AGENT.md
-persian-legal-assistant-codex-skills/
+AGENT.md                          project-level instructions for agents
+memory.md                         persistent decisions and phase status
+project_structure.md              intended layout and naming
+src/legal_assistant/              domain, application, infrastructure, interfaces, config
+config/ + manage.py               Django project (settings, urls, wsgi/asgi)
+web/                              Next.js frontend
+docker-compose.yml, Dockerfile    local runtime stack
+persian-legal-assistant-codex-skills/   local implementation guides (skills)
 ```
 
-- `AGENT.md`: project-level instructions for Codex and future agents.
-- `persian-legal-assistant-codex-skills/`: local project skills that explain how to implement each phase.
+## Requirements
+
+- Python 3.11+ (the repo is developed on 3.12)
+- Node.js 18.18+ and npm (for the web frontend)
+- Docker + Docker Compose (optional, for the containerized stack)
+
+## Setup & Run — Docker (recommended)
+
+Brings up the API/admin, Postgres, and the web UI together. Migrations run automatically on start.
+
+```bash
+cp .env.example .env          # then set a real DJANGO_SECRET_KEY
+docker compose up --build     # web → :8000, web-ui → :3000, postgres → :5432
+```
+
+If a host port is already taken, override it (host port only):
+
+```bash
+WEB_PORT=8020 UI_PORT=3020 DB_HOST_PORT=55432 docker compose up --build
+```
+
+Create an admin user and (optionally) import real lawyer data:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+docker compose exec web python manage.py import_lawyers /path/inside/container/lawyers.jsonl
+```
+
+- Admin UI: `http://localhost:8000/admin/`
+- API root (health): `http://localhost:8000/api/health/`
+- Web UI: `http://localhost:3000/`
+
+Useful commands:
+
+```bash
+docker compose logs -f web
+docker compose exec web python manage.py migrate
+docker compose exec web pytest
+docker compose down            # add -v to also drop the database volume
+```
+
+## Setup & Run — Local (without Docker)
+
+### Backend (Django admin + DRF API)
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e '.[api]'          # add ,postgres for the Postgres driver: '.[api,postgres]'
+
+# Use the real database-backed repositories for the admin/API (defaults are
+# test-safe in-memory; the app profile switches them to the ORM):
+export LAWYER_REPO_PROVIDER=orm
+export EVALUATION_REPO_PROVIDER=orm
+export DOCUMENT_STORE_PROVIDER=orm
+
+python manage.py migrate          # defaults to SQLite (db.sqlite3)
+python manage.py createsuperuser
+python manage.py runserver        # http://localhost:8000
+```
+
+Load real data (no fabricated rows ship with the app) via the admin, the API, or:
+
+```bash
+python manage.py import_lawyers path/to/your/lawyers.jsonl   # idempotent (upsert on lawyer_id)
+```
+
+Each JSON/JSONL record looks like:
+
+```json
+{"lawyer_id": "L-001", "full_name": "زهرا کریمی", "specialties": ["حقوق خانواده"], "location": "تهران", "success_rate": 0.82}
+```
+
+### Frontend (Next.js)
+
+```bash
+cd web
+npm install
+cp .env.example .env.local        # API_BASE_URL=http://localhost:8000
+npm run dev                       # http://localhost:3000
+```
+
+## API Endpoints
+
+Base path `/api/`. Reads and business actions are public; writes require an admin session.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/health/` | Service + active provider status |
+| GET / POST | `/api/lawyers/` | List / create lawyers (POST = admin) |
+| GET / PUT / DELETE | `/api/lawyers/<id>/` | Retrieve / update / delete (write = admin) |
+| POST | `/api/lawyers/recommend/` | Ranked lawyer recommendations + Persian rationale |
+| GET | `/api/documents/`, `/api/chunks/` | Browse ingested documents / chunks |
+| GET / POST | `/api/evaluations/` | List / add evaluation records (POST = admin) |
+| POST | `/api/evaluations/run/` | Run RAGAS-style evaluation, return metrics |
+| POST | `/api/ask/` | Agentic Persian answer with `chunk_id` citations |
+
+`/api/ask/` runs the agentic graph. It still uses the fake LLM until a real provider adapter exists; set `API_REQUIRE_REAL_LLM=true` to make it refuse rather than answer with the fake provider.
+
+## Tests & Checks
+
+```bash
+pytest                       # unit tests (fake ports, no live services)
+pytest -m integration        # external-service tests (opt-in)
+pyrefly check                # static type checking
+cd web && npm run build      # frontend production build + type check
+```
 
 ## How To Use This Project With Codex
 
@@ -65,6 +184,8 @@ persian-legal-assistant-codex-skills/
   persian-legal-agentic-core/
   persian-legal-evaluation-recommender/
   persian-legal-docker-runtime/
+  persian-legal-admin-api/
+  persian-legal-nextjs-ui/
 ```
 
 Use them by name in prompts:
@@ -87,6 +208,14 @@ Use $persian-legal-evaluation-recommender to implement Phase 3 recommendation an
 
 ```text
 Use $persian-legal-docker-runtime to add or update Docker Compose support.
+```
+
+```text
+Use $persian-legal-admin-api to build the Django admin UI and DRF API over real data.
+```
+
+```text
+Use $persian-legal-nextjs-ui to build the Next.js RTL/Persian frontend over the API.
 ```
 
 ## Development Principles
