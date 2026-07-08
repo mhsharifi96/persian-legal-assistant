@@ -49,3 +49,61 @@ def test_persian_legal_chunker_handles_arabic_digits() -> None:
 
     assert [chunk.hierarchy.article_number for chunk in chunks] == ["12", "12"]
     assert chunks[1].hierarchy.note_number == "2"
+
+
+def test_persian_legal_chunker_splits_oversized_article_into_subchunks() -> None:
+    sentence = "این متن یک جمله برای آزمایش شکستن ماده بزرگ است. "
+    body = sentence * 30
+    document = LegalDocument(
+        id="civil-code",
+        title="قانون مدنی",
+        source_uri="file:///laws/civil-code.txt",
+        jurisdiction="IR",
+        document_type="law",
+        text=f"ماده ۱ - {body}",
+    )
+
+    chunks = PersianLegalHierarchicalChunker(
+        max_chunk_tokens=50, chunk_overlap_tokens=10
+    ).chunk(document)
+
+    assert len(chunks) > 1
+    assert all(chunk.hierarchy.article_number == "1" for chunk in chunks)
+    assert [chunk.metadata["part_index"] for chunk in chunks] == list(range(len(chunks)))
+    assert all(chunk.metadata["part_count"] == len(chunks) for chunk in chunks)
+    assert len({chunk.id for chunk in chunks}) == len(chunks)
+
+
+def test_persian_legal_chunker_handles_noisy_parser_layout() -> None:
+    text = "\n".join(
+        [
+            "قانون مدنی",
+            "",
+            "کتاب اول",
+            "باب اول",
+            "",
+            "-- صفحه 12 --",
+            "فصل دوم",
+            "ماده ۱۰ - قراردادهای خصوصی نسبت به کسانی که آن را",
+            "منعقد نموده‌اند نافذ است.",
+            "",
+            "-- صفحه 13 --",
+            "تبصره ۱ - این تبصره برای نمونه است.",
+        ]
+    )
+    document = LegalDocument(
+        id="civil-code",
+        title="قانون مدنی",
+        source_uri="file:///laws/civil-code.txt",
+        jurisdiction="IR",
+        document_type="law",
+        text=text,
+        parser_name="llamaparse",
+    )
+
+    chunks = PersianLegalHierarchicalChunker().chunk(document)
+
+    assert [chunk.hierarchy.article_number for chunk in chunks] == ["10", "10"]
+    assert [chunk.hierarchy.note_number for chunk in chunks] == [None, "1"]
+    assert all(chunk.metadata["fasl"] == "فصل دوم" for chunk in chunks)
+    assert "صفحه" in chunks[0].text

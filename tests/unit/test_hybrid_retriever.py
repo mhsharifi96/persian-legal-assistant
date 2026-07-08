@@ -38,3 +38,64 @@ def test_hybrid_retriever_merges_vector_results_with_graph_neighbors() -> None:
 
     assert {context.chunk_id for context in contexts} == {"chunk-1", "chunk-neighbor"}
     assert contexts[0].source == "vector"
+
+
+def test_hybrid_retriever_fuses_by_rank_not_raw_score() -> None:
+    retriever = HybridRetriever(
+        FakeEmbeddingModel(), InMemoryVectorStoreRepository(), InMemoryGraphRepository()
+    )
+    vector_contexts = [
+        RetrievedContext(
+            chunk_id="v-top", text="a", score=0.9, source="vector", hierarchy=LegalHierarchy()
+        ),
+        RetrievedContext(
+            chunk_id="v-second", text="b", score=0.5, source="vector", hierarchy=LegalHierarchy()
+        ),
+    ]
+    graph_contexts = [
+        RetrievedContext(
+            chunk_id="g-only", text="c", score=999.0, source="graph", hierarchy=LegalHierarchy()
+        ),
+        RetrievedContext(
+            chunk_id="v-second", text="b", score=0.4, source="graph", hierarchy=LegalHierarchy()
+        ),
+    ]
+
+    merged = retriever._merge_contexts(vector_contexts, graph_contexts, top_k=3)
+
+    ranked_ids = [context.chunk_id for context in merged]
+    assert ranked_ids[0] == "v-second"
+    assert ranked_ids.index("g-only") > 0
+
+
+def test_hybrid_retriever_caps_graph_fanout() -> None:
+    embeddings = FakeEmbeddingModel()
+    vector_store = InMemoryVectorStoreRepository()
+    graph_store = InMemoryGraphRepository()
+    chunk = LegalChunk(
+        id="chunk-1",
+        document_id="law",
+        text="ماده ۱۰ نمونه",
+        hierarchy=LegalHierarchy(article_number="10"),
+        citations=(),
+        metadata={},
+    )
+    vector_store.upsert_chunks([chunk], embeddings.embed_texts([chunk.text]))
+    for index in range(30):
+        graph_store.add_context_neighbor(
+            "chunk-1",
+            RetrievedContext(
+                chunk_id=f"neighbor-{index}",
+                text="x",
+                score=0.1,
+                source="graph",
+                hierarchy=LegalHierarchy(),
+            ),
+        )
+
+    contexts = HybridRetriever(
+        embeddings, vector_store, graph_store, graph_fanout_limit=5
+    ).retrieve("ماده", top_k=100)
+
+    neighbor_ids = [context.chunk_id for context in contexts if context.chunk_id.startswith("neighbor-")]
+    assert len(neighbor_ids) == 5

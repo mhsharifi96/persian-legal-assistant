@@ -63,12 +63,15 @@ class GraphExtractionService:
         )
         try:
             return self._parse_response(response)
-        except GraphExtractionError:
+        except GraphExtractionError as exc:
             repaired = self._llm.complete(
                 [
                     {
                         "role": "system",
-                        "content": "Repair this graph extraction into valid JSON only.",
+                        "content": (
+                            "Repair this graph extraction into valid JSON only. "
+                            f"Validation error to fix: {exc}"
+                        ),
                     },
                     {"role": "user", "content": str(response)},
                 ],
