@@ -70,6 +70,7 @@ datasets/
 data/raw/
 data/interim/
 data/processed/
+data/import/
 *.pt
 *.pth
 *.onnx
@@ -98,3 +99,4 @@ web/next-env.d.ts
 !persian-legal-assistant-codex-skills/
 !persian-legal-assistant-codex-skills/**
 
+dadrah_output/

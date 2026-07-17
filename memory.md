@@ -49,6 +49,7 @@ Current skills:
 - `$persian-legal-docker-runtime`
 - `$persian-legal-admin-api`
 - `$persian-legal-nextjs-ui`
+- `$persian-legal-lawyer-fetcher`
 
 ## Suggested Next Prompt
 
@@ -143,4 +144,3 @@ Goal:
 - Do not commit `.env`, model caches, downloaded datasets, or database volumes.
 - Do not place Qdrant, Neo4j, OpenAI, HuggingFace, LlamaParse, RAGAS, or CrewAI imports inside domain or application logic.
 - Do not skip golden tests for Persian legal chunking.
-

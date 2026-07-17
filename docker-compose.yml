@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "${DB_HOST_PORT:-5432}:5432"
+      - "${DB_HOST_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-persian_legal_assistant}"]
       interval: 10s
@@ -40,10 +40,16 @@ services:
       EVALUATION_REPO_PROVIDER: ${EVALUATION_REPO_PROVIDER:-orm}
       DOCUMENT_STORE_PROVIDER: ${DOCUMENT_STORE_PROVIDER:-orm}
       LEGAL_JURISDICTION: ${LEGAL_JURISDICTION:-IR}
+      # AI provider settings are read from the project .env file by Compose
+      # and explicitly forwarded to the Django container at runtime.
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-}
       API_REQUIRE_REAL_LLM: ${API_REQUIRE_REAL_LLM:-false}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fake}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-MCINext/Hakim-small}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
-      - "${WEB_PORT:-8000}:8000"
+      - "${WEB_PORT:-8008}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,13 +64,13 @@ services:
     build:
       context: ./web
       args:
-        SITE_URL: ${SITE_URL:-http://localhost:3000}
+        SITE_URL: ${SITE_URL:-http://localhost:3008}
     environment:
       # Server-side base URL the frontend uses to reach the API (service name).
       API_BASE_URL: http://web:8000
-      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      SITE_URL: ${SITE_URL:-http://localhost:3008}
     ports:
-      - "${UI_PORT:-3000}:3000"
+      - "${UI_PORT:-3008}:3000"
     depends_on:
       web:
         condition: service_healthy

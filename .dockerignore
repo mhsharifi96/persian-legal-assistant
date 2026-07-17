@@ -47,6 +47,7 @@ datasets
 data/raw
 data/interim
 data/processed
+data/import
 *.safetensors
 *.bin
 *.pt

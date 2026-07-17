@@ -44,7 +44,7 @@ Brings up the API/admin, Postgres, and the web UI together. Migrations run autom
 
 ```bash
 cp .env.example .env          # then set a real DJANGO_SECRET_KEY
-docker compose up --build     # web → :8000, web-ui → :3000, postgres → :5432
+docker compose up --build     # web → :8008, web-ui → :3008, postgres → :5433
 ```
 
 If a host port is already taken, override it (host port only):
@@ -60,9 +60,9 @@ docker compose exec web python manage.py createsuperuser
 docker compose exec web python manage.py import_lawyers /path/inside/container/lawyers.jsonl
 ```
 
-- Admin UI: `http://localhost:8000/admin/`
-- API root (health): `http://localhost:8000/api/health/`
-- Web UI: `http://localhost:3000/`
+- Admin UI: `http://localhost:8008/admin/`
+- API root (health): `http://localhost:8008/api/health/`
+- Web UI: `http://localhost:3008/`
 
 Useful commands:
 
@@ -186,6 +186,7 @@ persian-legal-assistant-codex-skills/
   persian-legal-docker-runtime/
   persian-legal-admin-api/
   persian-legal-nextjs-ui/
+  persian-legal-lawyer-fetcher/
 ```
 
 Use them by name in prompts:
@@ -216,6 +217,10 @@ Use $persian-legal-admin-api to build the Django admin UI and DRF API over real 
 
 ```text
 Use $persian-legal-nextjs-ui to build the Next.js RTL/Persian frontend over the API.
+```
+
+```text
+Use $persian-legal-lawyer-fetcher to fetch public lawyer-directory records safely and normalize them for Django import.
 ```
 
 ## Development Principles

@@ -214,7 +214,8 @@ persian-legal-assistant-codex-skills/
 ├── persian-legal-evaluation-recommender/
 ├── persian-legal-docker-runtime/
 ├── persian-legal-admin-api/
-└── persian-legal-nextjs-ui/
+├── persian-legal-nextjs-ui/
+└── persian-legal-lawyer-fetcher/
 ```
 
 Each skill should contain:
@@ -235,4 +236,3 @@ Do not add README files inside individual skill folders unless there is a strong
 - Ports: suffix with `Port` or `Repository`
 - Adapters: prefix with provider name, for example `QdrantVectorStoreRepository`
 - Legal hierarchy fields: `book`, `bab`, `fasl`, `article_number`, `note_number`
-
