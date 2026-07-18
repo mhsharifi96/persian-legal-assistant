@@ -52,7 +52,7 @@ Use this file to record meaningful project-level changes. Keep entries short, da
 
 ### Local Codex Skills
 
-- Added project-local skill package under `persian-legal-assistant-codex-skills/`.
+- Added project-local skill package under `skills/`.
 - Added `$persian-legal-architecture` for ports/adapters, repositories, dependency injection, and replaceable provider architecture.
 - Added `$persian-legal-graphrag-ingestion` for Phase 1 document parsing, Persian legal hierarchy chunking, Qdrant, Neo4j, knowledge graph extraction, and hybrid retrieval.
 - Added `$persian-legal-agentic-core` for Phase 2 LangGraph reasoning, routing, query decomposition, retrieval, judge loop, optional CrewAI analysis, and citation-grounded Persian generation.

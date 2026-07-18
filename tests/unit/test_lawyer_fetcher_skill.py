@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 SCRIPT = (
     Path(__file__).resolve().parents[2]
-    / "persian-legal-assistant-codex-skills"
+    / "skills"
     / "persian-legal-lawyer-fetcher"
     / "scripts"
     / "fetch_lawyers.py"

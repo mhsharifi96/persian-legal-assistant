@@ -11,7 +11,7 @@ This document describes the intended repository structure for the Persian Legal 
 ├── memory.md
 ├── project_structure.md
 ├── .gitignore
-└── persian-legal-assistant-codex-skills/
+└── skills/
 ```
 
 ## Intended Application Layout
@@ -207,7 +207,7 @@ Only add `worker` and `redis` once background jobs are implemented.
 Project-local skills live here:
 
 ```text
-persian-legal-assistant-codex-skills/
+skills/
 ├── persian-legal-architecture/
 ├── persian-legal-graphrag-ingestion/
 ├── persian-legal-agentic-core/

@@ -96,7 +96,7 @@ web/next-env.d.ts
 # Keep project documentation and local Codex skills versioned.
 !AGENT.md
 !README.md
-!persian-legal-assistant-codex-skills/
-!persian-legal-assistant-codex-skills/**
+!skills/
+!skills/**
 
 dadrah_output/

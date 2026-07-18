@@ -13,7 +13,7 @@ The system should support Iranian legal document ingestion, Agentic RAG, citatio
 Before implementing major features, inspect the local skill package:
 
 ```text
-persian-legal-assistant-codex-skills/
+skills/
 ```
 
 Also read:

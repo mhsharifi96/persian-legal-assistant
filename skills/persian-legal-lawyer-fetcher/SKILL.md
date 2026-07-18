@@ -27,7 +27,7 @@ idempotent import command.
 Run from the repository root:
 
 ```bash
-python3 persian-legal-assistant-codex-skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
+python3 skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
   --bar "آذربایجان شرقی" \
   --output data/import/lawyers.jsonl
 ```
@@ -45,7 +45,7 @@ complete, so rerunning the same command retries it.
 Prefer an explicit, bounded list:
 
 ```bash
-python3 persian-legal-assistant-codex-skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
+python3 skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
   --bar "آذربایجان شرقی" \
   --bar "اردبیل" \
   --output data/import/lawyers.jsonl
@@ -60,7 +60,7 @@ as potentially truncated by the source.
 Use offline replay for parser work without calling the source:
 
 ```bash
-python3 persian-legal-assistant-codex-skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
+python3 skills/persian-legal-lawyer-fetcher/scripts/fetch_lawyers.py \
   --input-json /path/to/response.json \
   --bar "آذربایجان شرقی" \
   --output /tmp/lawyers.jsonl
@@ -76,7 +76,7 @@ The defaults cover request IDs `800000` through `891818` inclusively and create
 ten JSONL files plus ten checkpoint files:
 
 ```bash
-python3 persian-legal-assistant-codex-skills/persian-legal-lawyer-fetcher/scripts/fetch_dadrah.py \
+python3 skills/persian-legal-lawyer-fetcher/scripts/fetch_dadrah.py \
   --start-id 800000 \
   --end-id 891818 \
   --chunks 10 \

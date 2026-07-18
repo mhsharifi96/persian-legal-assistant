@@ -30,7 +30,7 @@ src/legal_assistant/              domain, application, infrastructure, interface
 config/ + manage.py               Django project (settings, urls, wsgi/asgi)
 web/                              Next.js frontend
 docker-compose.yml, Dockerfile    local runtime stack
-persian-legal-assistant-codex-skills/   local implementation guides (skills)
+skills/   local implementation guides (skills)
 ```
 
 ## Requirements
@@ -160,7 +160,7 @@ Open this repository in Codex and start by asking Codex to read `AGENT.md` and t
 Recommended first prompt:
 
 ```text
-Read AGENT.md and the local skills in persian-legal-assistant-codex-skills.
+Read AGENT.md and the local skills in skills.
 Start with the architecture foundation only.
 
 Create the initial Python/Django project structure for the Persian Legal Assistant.
@@ -192,7 +192,7 @@ Add integration tests behind pytest markers.
 The local skills are project-specific implementation guides.
 
 ```text
-persian-legal-assistant-codex-skills/
+skills/
   persian-legal-architecture/
   persian-legal-graphrag-ingestion/
   persian-legal-agentic-core/
@@ -382,7 +382,7 @@ Good candidates:
 
 Recommended process:
 
-1. Create a new folder under `persian-legal-assistant-codex-skills/`.
+1. Create a new folder under `skills/`.
 2. Add a required `SKILL.md`.
 3. Add optional `references/` files for detailed contracts.
 4. Add optional `agents/openai.yaml` for UI metadata.
@@ -392,7 +392,7 @@ Recommended process:
 Minimal structure:
 
 ```text
-persian-legal-assistant-codex-skills/my-new-skill/
+skills/my-new-skill/
   SKILL.md
   references/
   agents/openai.yaml
@@ -452,7 +452,7 @@ If you want Codex to discover them globally in future threads, copy each skill f
 Example:
 
 ```bash
-cp -R persian-legal-assistant-codex-skills/persian-legal-architecture ~/.codex/skills/
+cp -R skills/persian-legal-architecture ~/.codex/skills/
 ```
 
 Repeat for the other skill folders.

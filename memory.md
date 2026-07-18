@@ -38,7 +38,7 @@ Changing these should only require configuration or infrastructure adapter chang
 Always inspect local project skills before major work:
 
 ```text
-persian-legal-assistant-codex-skills/
+skills/
 ```
 
 Current skills:
