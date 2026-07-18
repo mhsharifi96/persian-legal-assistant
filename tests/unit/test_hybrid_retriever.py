@@ -1,5 +1,6 @@
 from legal_assistant.application.services.hybrid_retriever import HybridRetriever
 from legal_assistant.domain.models import LegalChunk, LegalHierarchy, RetrievedContext
+from legal_assistant.domain.models import GraphEntity, GraphRelation
 from legal_assistant.infrastructure.fakes import (
     FakeEmbeddingModel,
     InMemoryGraphRepository,
@@ -99,3 +100,38 @@ def test_hybrid_retriever_caps_graph_fanout() -> None:
 
     neighbor_ids = [context.chunk_id for context in contexts if context.chunk_id.startswith("neighbor-")]
     assert len(neighbor_ids) == 5
+
+
+def test_in_memory_graph_expands_between_chunks_linked_by_entities() -> None:
+    graph_store = InMemoryGraphRepository()
+    source = LegalChunk(
+        id="source",
+        document_id="law",
+        text="ماده ۱۰",
+        hierarchy=LegalHierarchy(article_number="10"),
+        citations=("قانون مدنی، ماده ۱۰",),
+        metadata={"jurisdiction": "IR"},
+    )
+    neighbor = LegalChunk(
+        id="neighbor",
+        document_id="law",
+        text="ماده ۲۱۹",
+        hierarchy=LegalHierarchy(article_number="219"),
+        citations=("قانون مدنی، ماده ۲۱۹",),
+        metadata={"jurisdiction": "IR"},
+    )
+    entities = [
+        GraphEntity(id="article:10", type="Article", name="ماده ۱۰"),
+        GraphEntity(id="article:219", type="Article", name="ماده ۲۱۹"),
+    ]
+    graph_store.upsert_entities(entities)
+    graph_store.upsert_relations(
+        [GraphRelation("article:10", "article:219", "REFERENCES")]
+    )
+    graph_store.link_chunk(source, ["article:10"])
+    graph_store.link_chunk(neighbor, ["article:219"])
+
+    contexts = graph_store.expand_context(["source"], depth=1)
+
+    assert [context.chunk_id for context in contexts] == ["neighbor"]
+    assert contexts[0].citations == neighbor.citations

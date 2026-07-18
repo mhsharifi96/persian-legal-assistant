@@ -15,11 +15,24 @@ def _env_bool(value: str | None, default: bool) -> bool:
 class Settings:
     jurisdiction: str = "IR"
     embedding_provider: str = "fake"
-    embedding_model_name: str = "MCINext/Hakim-small"
+    embedding_model_name: str = "text-embedding-3-large"
+    embedding_dimensions: int = 3072
     vectorstore_provider: str = "memory"
     graphstore_provider: str = "memory"
     parser_provider: str = "fake"
     llm_provider: str = "fake"
+    llm_model_name: str = "gpt-5.6"
+    openai_api_key: str = ""
+    openai_api_base: str = ""
+    openai_timeout_seconds: float = 60.0
+    openai_max_retries: int = 2
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str = ""
+    qdrant_collection_name: str = "persian_legal_chunks"
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_username: str = "neo4j"
+    neo4j_password: str = ""
+    neo4j_database: str = "neo4j"
     graph_depth: int = 1
     graph_fanout_limit: int = 20
     rrf_k: int = 60
@@ -62,6 +75,9 @@ class Settings:
             embedding_model_name=source.get(
                 "EMBEDDING_MODEL_NAME", defaults.embedding_model_name
             ),
+            embedding_dimensions=int(
+                source.get("EMBEDDING_DIMENSIONS", defaults.embedding_dimensions)
+            ),
             vectorstore_provider=source.get(
                 "VECTORSTORE_PROVIDER", defaults.vectorstore_provider
             ),
@@ -70,6 +86,24 @@ class Settings:
             ),
             parser_provider=source.get("PARSER_PROVIDER", defaults.parser_provider),
             llm_provider=source.get("LLM_PROVIDER", defaults.llm_provider),
+            llm_model_name=source.get("LLM_MODEL_NAME", defaults.llm_model_name),
+            openai_api_key=source.get("OPENAI_API_KEY", defaults.openai_api_key),
+            openai_api_base=source.get("OPENAI_API_BASE", defaults.openai_api_base),
+            openai_timeout_seconds=float(
+                source.get("OPENAI_TIMEOUT_SECONDS", defaults.openai_timeout_seconds)
+            ),
+            openai_max_retries=int(
+                source.get("OPENAI_MAX_RETRIES", defaults.openai_max_retries)
+            ),
+            qdrant_url=source.get("QDRANT_URL", defaults.qdrant_url),
+            qdrant_api_key=source.get("QDRANT_API_KEY", defaults.qdrant_api_key),
+            qdrant_collection_name=source.get(
+                "QDRANT_COLLECTION_NAME", defaults.qdrant_collection_name
+            ),
+            neo4j_uri=source.get("NEO4J_URI", defaults.neo4j_uri),
+            neo4j_username=source.get("NEO4J_USERNAME", defaults.neo4j_username),
+            neo4j_password=source.get("NEO4J_PASSWORD", defaults.neo4j_password),
+            neo4j_database=source.get("NEO4J_DATABASE", defaults.neo4j_database),
             graph_depth=int(source.get("GRAPH_DEPTH", defaults.graph_depth)),
             graph_fanout_limit=int(
                 source.get("GRAPH_FANOUT_LIMIT", defaults.graph_fanout_limit)

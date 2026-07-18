@@ -108,6 +108,8 @@ class InMemoryGraphRepository:
         self.entities: dict[str, GraphEntity] = {}
         self.relations: list[GraphRelation] = []
         self.contexts_by_chunk_id: dict[str, list[RetrievedContext]] = defaultdict(list)
+        self.chunks: dict[str, LegalChunk] = {}
+        self.entity_ids_by_chunk: dict[str, set[str]] = defaultdict(set)
 
     def upsert_entities(self, entities: Sequence[GraphEntity]) -> None:
         for entity in entities:
@@ -116,6 +118,10 @@ class InMemoryGraphRepository:
     def upsert_relations(self, relations: Sequence[GraphRelation]) -> None:
         self.relations.extend(relations)
 
+    def link_chunk(self, chunk: LegalChunk, entity_ids: Sequence[str]) -> None:
+        self.chunks[chunk.id] = chunk
+        self.entity_ids_by_chunk[chunk.id].update(entity_ids)
+
     def expand_context(
         self, chunk_ids: Sequence[str], *, depth: int, limit: int | None = None
     ) -> list[RetrievedContext]:
@@ -123,7 +129,46 @@ class InMemoryGraphRepository:
         for chunk_id in chunk_ids:
             neighbors = self.contexts_by_chunk_id.get(chunk_id, [])
             contexts.extend(neighbors[:limit] if limit is not None else neighbors)
-        return contexts
+            related_entity_ids = self._related_entity_ids(
+                self.entity_ids_by_chunk.get(chunk_id, set()), depth
+            )
+            for neighbor_chunk_id, entity_ids in self.entity_ids_by_chunk.items():
+                if neighbor_chunk_id == chunk_id or not related_entity_ids.intersection(
+                    entity_ids
+                ):
+                    continue
+                chunk = self.chunks[neighbor_chunk_id]
+                contexts.append(
+                    RetrievedContext(
+                        chunk_id=chunk.id,
+                        text=chunk.text,
+                        score=1.0,
+                        source="graph",
+                        hierarchy=chunk.hierarchy,
+                        citations=chunk.citations,
+                        graph_neighbors=tuple(sorted(related_entity_ids.intersection(entity_ids))),
+                        metadata=chunk.metadata,
+                    )
+                )
+        deduplicated = list({context.chunk_id: context for context in contexts}.values())
+        return deduplicated[:limit] if limit is not None else deduplicated
+
+    def _related_entity_ids(self, seed_ids: set[str], depth: int) -> set[str]:
+        visited = set(seed_ids)
+        frontier = set(seed_ids)
+        for _ in range(max(0, depth)):
+            next_frontier: set[str] = set()
+            for relation in self.relations:
+                if relation.source_id in frontier:
+                    next_frontier.add(relation.target_id)
+                if relation.target_id in frontier:
+                    next_frontier.add(relation.source_id)
+            next_frontier.difference_update(visited)
+            visited.update(next_frontier)
+            frontier = next_frontier
+            if not frontier:
+                break
+        return visited
 
     def add_context_neighbor(self, chunk_id: str, context: RetrievedContext) -> None:
         self.contexts_by_chunk_id[chunk_id].append(context)

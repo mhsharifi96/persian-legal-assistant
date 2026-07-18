@@ -59,6 +59,60 @@ LLM_BUILDERS: dict[str, Callable[[Settings], LLMPort]] = {
 }
 
 
+def _openai_embedding_model(settings: Settings) -> EmbeddingModelPort:
+    from legal_assistant.infrastructure.embeddings import OpenAIEmbeddingModel
+
+    return OpenAIEmbeddingModel(
+        model_name=settings.embedding_model_name,
+        dimensions=settings.embedding_dimensions,
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_api_base,
+        timeout_seconds=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
+
+
+def _qdrant_vector_store(settings: Settings) -> VectorStoreRepository:
+    from legal_assistant.infrastructure.vectorstores import (
+        QdrantVectorStoreRepository,
+    )
+
+    return QdrantVectorStoreRepository(
+        url=settings.qdrant_url,
+        collection_name=settings.qdrant_collection_name,
+        api_key=settings.qdrant_api_key,
+    )
+
+
+def _neo4j_graph_store(settings: Settings) -> GraphRepository:
+    from legal_assistant.infrastructure.graphstores import Neo4jGraphRepository
+
+    return Neo4jGraphRepository(
+        uri=settings.neo4j_uri,
+        username=settings.neo4j_username,
+        password=settings.neo4j_password,
+        database=settings.neo4j_database,
+    )
+
+
+def _openai_llm(settings: Settings) -> LLMPort:
+    from legal_assistant.infrastructure.llms import OpenAILLM
+
+    return OpenAILLM(
+        model_name=settings.llm_model_name,
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_api_base,
+        timeout_seconds=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
+
+
+EMBEDDING_BUILDERS["openai"] = _openai_embedding_model
+VECTORSTORE_BUILDERS["qdrant"] = _qdrant_vector_store
+GRAPHSTORE_BUILDERS["neo4j"] = _neo4j_graph_store
+LLM_BUILDERS["openai"] = _openai_llm
+
+
 # --- Admin/API persistence registries ---------------------------------------
 # The "orm" builders are imported lazily inside the lambda so that importing
 # bootstrap never requires Django to be configured (unit tests, ingestion CLI).
@@ -160,8 +214,9 @@ def build_llm(settings: Settings) -> LLMPort:
 
 
 def build_hybrid_retriever(settings: Settings) -> HybridRetriever:
+    embeddings = build_embedding_model(settings)
     return HybridRetriever(
-        embeddings=build_embedding_model(settings),
+        embeddings=embeddings,
         vector_store=build_vector_store(settings),
         graph_store=build_graph_store(settings),
         graph_depth=settings.graph_depth,

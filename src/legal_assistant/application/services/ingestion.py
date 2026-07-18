@@ -77,6 +77,9 @@ class DocumentIngestionService:
                     continue
                 self._graph_store.upsert_entities(extraction.entities)
                 self._graph_store.upsert_relations(extraction.relations)
+                self._graph_store.link_chunk(
+                    chunk, [entity.id for entity in extraction.entities]
+                )
                 entity_count += len(extraction.entities)
                 relation_count += len(extraction.relations)
 

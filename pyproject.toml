@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
+    "beautifulsoup4>=4.13",
     "pyrefly>=1.1.1",
     "pytest>=8.0",
 ]
@@ -21,6 +22,12 @@ api = [
 ]
 postgres = [
     "psycopg[binary]>=3.1",
+]
+ai = [
+    "langchain-openai>=1.0,<2.0",
+    "langchain-qdrant>=1.0,<2.0",
+    "langchain-neo4j>=0.6,<1.0",
+    "langsmith>=0.4.25,<1.0",
 ]
 
 [tool.setuptools.packages.find]
