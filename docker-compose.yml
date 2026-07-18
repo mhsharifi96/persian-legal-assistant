@@ -1,8 +1,6 @@
 # Persian Legal Assistant — local development stack.
-# Services for the current phase: Django API/admin (web), Postgres (real DB),
-# and the Next.js frontend (web-ui). Retrieval services (qdrant, neo4j) and
-# background jobs (redis, worker) are intentionally omitted until real adapters
-# for those ports exist — see the commented block at the bottom.
+# Services for the current phase: Django API/admin, Postgres, Qdrant, Neo4j,
+# and the Next.js frontend. OpenAI and LangSmith remain opt-in through .env.
 
 services:
   postgres:
@@ -20,6 +18,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "${QDRANT_HOST_PORT:-6333}:6333"
+
+  neo4j:
+    image: neo4j:5.26-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-please-change}
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - "${NEO4J_HTTP_HOST_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_HOST_PORT:-7687}:7687"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "cypher-shell -u ${NEO4J_USERNAME:-neo4j} -p ${NEO4J_PASSWORD:-please-change} 'RETURN 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   web:
     build:
@@ -43,15 +68,38 @@ services:
       # AI provider settings are read from the project .env file by Compose
       # and explicitly forwarded to the Django container at runtime.
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gpt-5.6}
       API_REQUIRE_REAL_LLM: ${API_REQUIRE_REAL_LLM:-false}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fake}
-      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-MCINext/Hakim-small}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-text-embedding-3-large}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-3072}
+      VECTORSTORE_PROVIDER: ${VECTORSTORE_PROVIDER:-memory}
+      GRAPHSTORE_PROVIDER: ${GRAPHSTORE_PROVIDER:-memory}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-2}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-persian_legal_chunks}
+      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-please-change}
+      NEO4J_DATABASE: ${NEO4J_DATABASE:-neo4j}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-persian-legal-assistant}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      LANGSMITH_HIDE_INPUTS: ${LANGSMITH_HIDE_INPUTS:-true}
+      LANGSMITH_HIDE_OUTPUTS: ${LANGSMITH_HIDE_OUTPUTS:-true}
     ports:
       - "${WEB_PORT:-8008}:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      neo4j:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
@@ -77,18 +125,10 @@ services:
 
 volumes:
   postgres_data:
+  qdrant_data:
+  neo4j_data:
 
-# --- Future services (add when real adapters/background jobs exist) ---------
-#  qdrant:
-#    image: qdrant/qdrant:latest
-#    ports: ["6333:6333"]
-#    volumes: ["qdrant_data:/qdrant/storage"]
-#  neo4j:
-#    image: neo4j:5
-#    environment:
-#      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-please-change}
-#    ports: ["7474:7474", "7687:7687"]
-#    volumes: ["neo4j_data:/data"]
+# --- Future services (add when background jobs exist) -----------------------
 #  redis:
 #    image: redis:7
 #    ports: ["6379:6379"]

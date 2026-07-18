@@ -14,7 +14,7 @@ RUN apt-get update \
 # Install dependencies first (cached) — copy only what the package build needs.
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install ".[api,postgres]"
+RUN pip install ".[api,postgres,ai]"
 
 # Application entry points (top-level Django project + manage.py).
 COPY manage.py ./

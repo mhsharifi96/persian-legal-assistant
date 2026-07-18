@@ -2,6 +2,15 @@
 
 Use this file to record meaningful project-level changes. Keep entries short, dated, and useful for future agents.
 
+## 2026-07-18
+
+### Real OpenAI and GraphRAG Providers
+
+- Added LangChain adapters for OpenAI chat and embeddings, configurable model names, dimensions, API base, timeout, and retries.
+- Added real Qdrant vector storage/search and LangChain Neo4j graph persistence/expansion behind existing application ports. Graph ingestion now persists source chunk→entity links so graph traversal can return real legal chunks.
+- Added opt-in LangSmith tracing configuration with legal-data input/output masking enabled by default.
+- Added Qdrant and Neo4j to Docker Compose, an `ai` dependency extra, provider settings/bootstrap registrations, and real-provider environment documentation.
+
 ## 2026-07-08
 
 ### Phase 3 Recommendation and Evaluation
@@ -72,4 +81,3 @@ When adding a new entry:
 - Group changes by area: architecture, Phase 1, Phase 2, Phase 3, Docker, docs, tests, skills.
 - Mention important decisions and migrations.
 - Do not include secrets, API keys, or private credentials.
-

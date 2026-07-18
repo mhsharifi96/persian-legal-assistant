@@ -57,6 +57,10 @@ class GraphRepository(Protocol):
 
     def upsert_relations(self, relations: Sequence[GraphRelation]) -> None: ...
 
+    def link_chunk(self, chunk: LegalChunk, entity_ids: Sequence[str]) -> None:
+        """Persist the source chunk and its links to extracted graph entities."""
+        ...
+
     def expand_context(
         self, chunk_ids: Sequence[str], *, depth: int, limit: int | None = None
     ) -> list[RetrievedContext]: ...

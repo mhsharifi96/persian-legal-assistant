@@ -8,16 +8,17 @@ The project target is a modular Persian LegalTech system for Iranian law. It wil
 
 ## Repository Status
 
-Implemented so far (against fake/in-memory adapters plus real persistence for the app layer):
+Implemented so far (fake defaults plus opt-in real providers):
 
-- **Phase 1 – GraphRAG ingestion** foundation: Persian legal hierarchical chunking, ingestion service, graph extraction, RRF hybrid retriever (fake embedding/vector/graph adapters).
+- **Phase 1 – GraphRAG ingestion**: Persian legal hierarchical chunking, OpenAI embeddings through LangChain, Qdrant vector search, Neo4j chunk-linked graph expansion, graph extraction, and RRF hybrid retrieval.
 - **Phase 2 – Agentic core**: dependency-free reasoning graph (router → decompose → retrieve → judge → generate) with bounded self-reflection and citation grounding.
 - **Phase 3 – Recommendation & evaluation**: weighted lawyer recommendation and RAGAS-style evaluation.
 - **Admin UI + API**: Django 5 admin and a Django REST Framework API over a **real database** (Django ORM adapters).
 - **Web frontend**: a Next.js 14 (App Router, TypeScript, Tailwind) RTL/Persian UI that consumes the API.
-- **Docker**: `web` (Django) + `postgres` + `web-ui` (Next.js) via Docker Compose.
+- **LLM + observability**: OpenAI chat through LangChain and opt-in LangSmith traces with configurable input/output masking.
+- **Docker**: `web` (Django) + `postgres` + `qdrant` + `neo4j` + `web-ui` (Next.js) via Docker Compose.
 
-Still outstanding: real external provider adapters (Qdrant, Neo4j, HuggingFace, LlamaParse, a real LLM) and a real Iranian legal/lawyer dataset.
+Still outstanding: a real document parser, an ingestion command/job, and a real Iranian legal/lawyer dataset.
 
 Important files and folders:
 
@@ -36,21 +37,22 @@ persian-legal-assistant-codex-skills/   local implementation guides (skills)
 
 - Python 3.11+ (the repo is developed on 3.12)
 - Node.js 18.18+ and npm (for the web frontend)
-- Docker + Docker Compose (optional, for the containerized stack)
+- Docker + Docker Compose (recommended for Qdrant and Neo4j)
 
 ## Setup & Run — Docker (recommended)
 
-Brings up the API/admin, Postgres, and the web UI together. Migrations run automatically on start.
+Brings up the API/admin, Postgres, Qdrant, Neo4j, and the web UI together. Migrations run automatically on start.
 
 ```bash
-cp .env.example .env          # then set a real DJANGO_SECRET_KEY
-docker compose up --build     # web → :8008, web-ui → :3008, postgres → :5433
+cp .env.example .env          # set DJANGO_SECRET_KEY and OPENAI_API_KEY
+docker compose up --build     # API :8008, UI :3008, Qdrant :6333, Neo4j :7474
 ```
 
 If a host port is already taken, override it (host port only):
 
 ```bash
-WEB_PORT=8020 UI_PORT=3020 DB_HOST_PORT=55432 docker compose up --build
+WEB_PORT=8020 UI_PORT=3020 DB_HOST_PORT=55432 QDRANT_HOST_PORT=6433 \
+NEO4J_HTTP_HOST_PORT=7574 NEO4J_BOLT_HOST_PORT=7787 docker compose up --build
 ```
 
 Create an admin user and (optionally) import real lawyer data:
@@ -79,7 +81,7 @@ docker compose down            # add -v to also drop the database volume
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e '.[api]'          # add ,postgres for the Postgres driver: '.[api,postgres]'
+pip install -e '.[api,ai]'       # add ,postgres for Postgres: '.[api,postgres,ai]'
 
 # Use the real database-backed repositories for the admin/API (defaults are
 # test-safe in-memory; the app profile switches them to the ORM):
@@ -128,7 +130,19 @@ Base path `/api/`. Reads and business actions are public; writes require an admi
 | POST | `/api/evaluations/run/` | Run RAGAS-style evaluation, return metrics |
 | POST | `/api/ask/` | Agentic Persian answer with `chunk_id` citations |
 
-`/api/ask/` runs the agentic graph. It still uses the fake LLM until a real provider adapter exists; set `API_REQUIRE_REAL_LLM=true` to make it refuse rather than answer with the fake provider.
+`/api/ask/` runs the agentic graph. The safe code defaults use fake/in-memory providers; `.env.example` selects the real `openai`/`qdrant`/`neo4j` profile. To enable LangSmith, set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY`; legal prompt/response payloads are masked by default.
+
+The real provider settings are:
+
+```text
+LLM_PROVIDER=openai
+LLM_MODEL_NAME=gpt-5.6
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL_NAME=text-embedding-3-large
+EMBEDDING_DIMENSIONS=3072
+VECTORSTORE_PROVIDER=qdrant
+GRAPHSTORE_PROVIDER=neo4j
+```
 
 ## Tests & Checks
 
