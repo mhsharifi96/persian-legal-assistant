@@ -37,6 +37,19 @@ class Neo4jGraphRepository:
             database=database,
             refresh_schema=False,
         )
+        if graph is None:
+            self._ensure_schema()
+
+    def _ensure_schema(self) -> None:
+        """Create indexes required for bounded idempotent merge performance."""
+        self._graph.query(
+            "CREATE CONSTRAINT legal_entity_entity_id IF NOT EXISTS "
+            "FOR (node:LegalEntity) REQUIRE node.entity_id IS UNIQUE"
+        )
+        self._graph.query(
+            "CREATE CONSTRAINT legal_chunk_chunk_id IF NOT EXISTS "
+            "FOR (chunk:LegalChunk) REQUIRE chunk.chunk_id IS UNIQUE"
+        )
 
     def upsert_entities(self, entities: Sequence[GraphEntity]) -> None:
         with trace(

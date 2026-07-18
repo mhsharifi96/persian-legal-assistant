@@ -11,12 +11,11 @@ from legal_assistant.application.services.ingestion import DocumentIngestionServ
 from legal_assistant.config.bootstrap import (
     build_document_store,
     build_embedding_model,
-    build_graph_store,
     build_vector_store,
 )
 from legal_assistant.infrastructure.chunkers import DadrahConsultationChunker
-from legal_assistant.infrastructure.graphstores.dadrah_extractor import (
-    DadrahGraphExtractor,
+from legal_assistant.infrastructure.graphstores.dadrah_native import (
+    DadrahNativeGraphImporter,
 )
 from legal_assistant.infrastructure.parsers import DadrahJsonlParser
 
@@ -34,7 +33,15 @@ class Command(BaseCommand):
         parser.add_argument(
             "--neo4j",
             action="store_true",
-            help="Create deterministic consultation/tag/lawyer relationships in Neo4j.",
+            help="Create deterministic Question/Answer/Lawyer/Tag nodes in Neo4j.",
+        )
+        parser.add_argument(
+            "--neo4j-only",
+            action="store_true",
+            help=(
+                "Import only into Neo4j without persisting consultations/chunks "
+                "to the Django document store; requires --neo4j."
+            ),
         )
         parser.add_argument(
             "--collection",
@@ -67,13 +74,19 @@ class Command(BaseCommand):
         limit = options["limit"]
         if limit is not None and limit <= 0:
             raise CommandError("--limit must be greater than zero")
+        if options["neo4j_only"] and not options["neo4j"]:
+            raise CommandError("--neo4j-only requires --neo4j")
 
         app_settings = replace(
             django_settings.LEGAL_ASSISTANT_SETTINGS,
             document_store_provider="orm",
             qdrant_collection_name=str(options["collection"]),
         )
-        document_store = build_document_store(app_settings)
+        document_store = (
+            None
+            if options["neo4j_only"]
+            else build_document_store(app_settings)
+        )
 
         embeddings = None
         vector_store = None
@@ -93,19 +106,40 @@ class Command(BaseCommand):
             embeddings = build_embedding_model(app_settings)
             vector_store = build_vector_store(app_settings)
 
-        graph_store = None
-        graph_extractor = None
+        native_graph_entities = 0
+        native_graph_relations = 0
         if options["neo4j"]:
             if app_settings.graphstore_provider != "neo4j":
                 raise CommandError("Set GRAPHSTORE_PROVIDER=neo4j before using --neo4j.")
-            graph_store = build_graph_store(app_settings)
-            graph_extractor = DadrahGraphExtractor()
+            importer = DadrahNativeGraphImporter(
+                uri=app_settings.neo4j_uri,
+                username=app_settings.neo4j_username,
+                password=app_settings.neo4j_password,
+                database=app_settings.neo4j_database,
+            )
+            try:
+                graph_stats = importer.import_files(files, limit=limit)
+            finally:
+                importer.close()
+            native_graph_entities = graph_stats.questions + graph_stats.answers
+            native_graph_relations = (
+                graph_stats.answers + graph_stats.tag_links + graph_stats.lawyer_links
+            )
+            if options["neo4j_only"]:
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Imported {graph_stats.questions} questions and "
+                        f"{graph_stats.answers} answers into Neo4j; "
+                        f"graph relations={native_graph_relations}."
+                    )
+                )
+                return
 
         remaining = limit
         document_count = 0
         chunk_count = 0
-        graph_entity_count = 0
-        graph_relation_count = 0
+        graph_entity_count = native_graph_entities
+        graph_relation_count = native_graph_relations
         error_count = 0
         for path in files:
             if remaining is not None and remaining <= 0:
@@ -123,8 +157,6 @@ class Command(BaseCommand):
                 document_store=document_store,
                 embeddings=embeddings,
                 vector_store=vector_store,
-                graph_store=graph_store,
-                graph_extractor=graph_extractor,
                 embedding_batch_size=app_settings.embedding_batch_size,
                 vector_chunk_filter=(
                     None

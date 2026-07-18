@@ -65,6 +65,36 @@ docker compose exec web python manage.py import_lawyers /path/inside/container/l
 - Admin UI: `http://localhost:8008/admin/`
 - API root (health): `http://localhost:8008/api/health/`
 - Web UI: `http://localhost:3008/`
+- Neo4j Browser: `http://localhost:7474/`
+
+### Importing the NovinLaw graphs into Neo4j
+
+The standalone importer reads the crawler SQLite databases in read-only mode
+and idempotently merges stable node IDs and keyed relationships into Neo4j.
+Validate both sources without connecting to Neo4j first:
+
+```bash
+python scripts/import_novinlaw_to_neo4j.py \
+  novinlaw_output novinlaw_unanimity_output --dry-run
+```
+
+Then start Neo4j and import both graphs using credentials from `.env`:
+
+```bash
+docker compose up -d neo4j
+set -a; source .env; set +a
+NEO4J_URI="bolt://localhost:${NEO4J_BOLT_HOST_PORT:-7687}" \
+  python scripts/import_novinlaw_to_neo4j.py \
+  novinlaw_output novinlaw_unanimity_output --batch-size 1000
+```
+
+In Neo4j Browser, visualize a bounded neighborhood with:
+
+```cypher
+MATCH (source:NovinLawNode)-[relation]->(target:NovinLawNode)
+RETURN source, relation, target
+LIMIT 100
+```
 
 Useful commands:
 
@@ -150,6 +180,30 @@ python manage.py import_dadrah data/import/dadrah_output_v2 \
 provider is OpenAI because consultation text is sent to that provider. Use
 `--include-answers-in-qdrant` only if unverified answer embeddings are an
 intentional part of the experiment.
+
+For a local Neo4j-only import that does not write consultations to the Django
+document store or call an embedding provider:
+
+```bash
+set -a; source .env; set +a
+GRAPHSTORE_PROVIDER=neo4j \
+NEO4J_URI="bolt://localhost:${NEO4J_BOLT_HOST_PORT:-7687}" \
+python manage.py import_dadrah data/import/dadrah_output_v2 \
+  --neo4j --neo4j-only
+```
+
+Dadrah uses explicit `Question`, `Answer`, `Lawyer`, and `Tag` labels in Neo4j;
+it does not create `LegalChunk` nodes. The source graph uses `HAS_ANSWER`,
+`ANSWERED_BY`, and `TAGGED_WITH` relationships. To migrate an older Dadrah
+graph and remove its derived `LegalChunk`/`Consultation` nodes after rebuilding
+the explicit source graph, run:
+
+```bash
+set -a; source .env; set +a
+NEO4J_URI="bolt://localhost:${NEO4J_BOLT_HOST_PORT:-7687}" \
+python scripts/import_dadrah_to_neo4j.py data/import/dadrah_output_v2 \
+  --cleanup-legacy
+```
 
 ### Frontend (Next.js)
 
