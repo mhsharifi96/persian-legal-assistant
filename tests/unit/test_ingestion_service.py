@@ -9,6 +9,7 @@ from legal_assistant.infrastructure.fakes import (
     FakeGraphExtractor,
     InMemoryGraphRepository,
     InMemoryIngestionErrorSink,
+    InMemoryDocumentStore,
     InMemoryVectorStoreRepository,
 )
 
@@ -120,3 +121,27 @@ def test_ingestion_isolates_embedding_failures_per_chunk() -> None:
     assert len(result.errors) == 1
     assert result.errors[0].stage == "embedding"
     assert len(error_sink.errors) == 1
+
+
+def test_ingestion_can_persist_documents_without_vector_or_graph_indexing() -> None:
+    document = LegalDocument(
+        id="consultation",
+        title="مشاوره",
+        source_uri="https://example.test/consultation",
+        jurisdiction="IR",
+        document_type="legal_consultation",
+        text="متن عمومی بدون ساختار ماده",
+    )
+    document_store = InMemoryDocumentStore()
+    service = DocumentIngestionService(
+        parser=FakeDocumentParser([document]),
+        chunker=PersianLegalHierarchicalChunker(),
+        document_store=document_store,
+    )
+
+    result = service.ingest(document.source_uri)
+
+    assert result.document_count == 1
+    assert result.chunk_count == 1
+    assert document_store.list_documents()[0].id == document.id
+    assert document_store.list_chunks(document_id=document.id)[0].document_id == document.id

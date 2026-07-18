@@ -54,7 +54,13 @@ class LegalDocumentRow(models.Model):
 
 
 class LegalChunkRow(models.Model):
-    """Persistence row for a legal chunk with full Iranian hierarchy metadata."""
+    """A source-agnostic text chunk.
+
+    Format-specific structure (legal hierarchy, PDF pages, spreadsheet sheets,
+    JSONL record numbers, and similar lineage) belongs in ``metadata`` rather
+    than dedicated columns.  This keeps the table stable when new source
+    formats are introduced.
+    """
 
     external_id = models.CharField(max_length=160, unique=True, db_index=True)
     document = models.ForeignKey(
@@ -65,16 +71,6 @@ class LegalChunkRow(models.Model):
         db_column="document_external_id",
     )
     text = models.TextField()
-    # Iranian legal hierarchy (کتاب/باب/فصل/مبحث/گفتار/ماده/تبصره).
-    book = models.CharField(max_length=128, blank=True, null=True)
-    bab = models.CharField(max_length=128, blank=True, null=True)
-    fasl = models.CharField(max_length=128, blank=True, null=True)
-    mabhas = models.CharField(max_length=128, blank=True, null=True)
-    goftar = models.CharField(max_length=128, blank=True, null=True)
-    article_number = models.CharField(
-        max_length=64, blank=True, null=True, db_index=True
-    )
-    note_number = models.CharField(max_length=64, blank=True, null=True)
     citations = models.JSONField(default=list, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

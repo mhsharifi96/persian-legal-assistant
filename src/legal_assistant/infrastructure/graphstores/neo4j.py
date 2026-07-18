@@ -110,42 +110,59 @@ class Neo4jGraphRepository:
             )
 
     def link_chunk(self, chunk: LegalChunk, entity_ids: Sequence[str]) -> None:
-        with trace(
-            "neo4j-link-legal-chunk",
-            run_type="tool",
-            inputs={"chunk_id": chunk.id, "entity_count": len(entity_ids)},
-        ):
-            self._link_chunk_impl(chunk, entity_ids)
+        self.link_chunks([(chunk, entity_ids)])
 
-    def _link_chunk_impl(
-        self, chunk: LegalChunk, entity_ids: Sequence[str]
+    def link_chunks(
+        self, items: Sequence[tuple[LegalChunk, Sequence[str]]]
+    ) -> None:
+        if not items:
+            return
+        with trace(
+            "neo4j-link-legal-chunks",
+            run_type="tool",
+            inputs={"chunk_count": len(items)},
+        ):
+            for start in range(0, len(items), 500):
+                self._link_chunks_impl(items[start : start + 500])
+
+    def _link_chunks_impl(
+        self, items: Sequence[tuple[LegalChunk, Sequence[str]]]
     ) -> None:
         self._graph.query(
             """
-            MERGE (chunk:LegalChunk {chunk_id: $chunk_id})
-            SET chunk.document_id = $document_id,
-                chunk.text = $text,
-                chunk.hierarchy_json = $hierarchy_json,
-                chunk.citations = $citations,
-                chunk.metadata_json = $metadata_json
-            WITH chunk
+            UNWIND $chunks AS item
+            MERGE (chunk:LegalChunk {chunk_id: item.chunk_id})
+            SET chunk.document_id = item.document_id,
+                chunk.text = item.text,
+                chunk.hierarchy_json = item.hierarchy_json,
+                chunk.citations = item.citations,
+                chunk.metadata_json = item.metadata_json
+            WITH chunk, item
             OPTIONAL MATCH (chunk)-[old:MENTIONS]->()
             DELETE old
-            WITH DISTINCT chunk
-            UNWIND $entity_ids AS entity_id
+            WITH DISTINCT chunk, item
+            UNWIND item.entity_ids AS entity_id
             MATCH (entity:LegalEntity {entity_id: entity_id})
             MERGE (chunk)-[:MENTIONS]->(entity)
             """,
             {
-                "chunk_id": chunk.id,
-                "document_id": chunk.document_id,
-                "text": chunk.text,
-                "hierarchy_json": json.dumps(
-                    self._hierarchy_to_dict(chunk.hierarchy), ensure_ascii=False
-                ),
-                "citations": list(chunk.citations),
-                "metadata_json": json.dumps(chunk.metadata, ensure_ascii=False),
-                "entity_ids": list(dict.fromkeys(entity_ids)),
+                "chunks": [
+                    {
+                        "chunk_id": chunk.id,
+                        "document_id": chunk.document_id,
+                        "text": chunk.text,
+                        "hierarchy_json": json.dumps(
+                            self._hierarchy_to_dict(chunk.hierarchy),
+                            ensure_ascii=False,
+                        ),
+                        "citations": list(chunk.citations),
+                        "metadata_json": json.dumps(
+                            chunk.metadata, ensure_ascii=False
+                        ),
+                        "entity_ids": list(dict.fromkeys(entity_ids)),
+                    }
+                    for chunk, entity_ids in items
+                ]
             },
         )
 

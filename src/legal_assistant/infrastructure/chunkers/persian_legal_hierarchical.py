@@ -8,6 +8,7 @@ from typing import Callable, Literal, TypedDict
 from legal_assistant.domain.models import LegalChunk, LegalDocument, LegalHierarchy
 
 CHUNKING_STRATEGY = "iranian_legal_hierarchical_v1"
+GENERIC_CHUNKING_STRATEGY = "generic_recursive_text_v1"
 
 HeadingKind = Literal["book", "bab", "fasl", "mabhas", "goftar"]
 EventKind = HeadingKind | Literal["article", "note"]
@@ -73,14 +74,32 @@ def split_oversized_span(
 ) -> list[tuple[int, int]]:
     """Return char offsets (relative to ``text``) for one or more subspans,
     packing whole sentences into windows up to ``max_tokens`` with a small
-    trailing overlap so meaning is not cut mid-sentence. Never splits inside a
-    single sentence, even if that sentence alone exceeds the budget."""
+    trailing overlap. If a source has no sentence boundaries (common for
+    spreadsheets), fall back to overlapping word windows."""
     if token_counter(text) <= max_tokens:
         return [(0, len(text))]
 
     sentences = _split_sentences(text)
-    if len(sentences) <= 1:
-        return [(0, len(text))]
+    if len(sentences) <= 1 or any(
+        token_counter(text[start:end]) > max_tokens for start, end in sentences
+    ):
+        words = list(re.finditer(r"\S+", text))
+        if not words:
+            return []
+        spans: list[tuple[int, int]] = []
+        start_index = 0
+        while start_index < len(words):
+            end_index = start_index + 1
+            while end_index < len(words):
+                candidate = text[words[start_index].start() : words[end_index].end()]
+                if token_counter(candidate) > max_tokens:
+                    break
+                end_index += 1
+            spans.append((words[start_index].start(), words[end_index - 1].end()))
+            if end_index >= len(words):
+                break
+            start_index = max(start_index + 1, end_index - max(0, overlap_tokens))
+        return spans
 
     spans: list[tuple[int, int]] = []
     i = 0
@@ -117,6 +136,14 @@ class PersianLegalHierarchicalChunker:
 
     def chunk(self, document: LegalDocument) -> list[LegalChunk]:
         events = self._iter_events(document.text)
+        if not events:
+            return self._build_chunks(
+                document,
+                LegalHierarchy(),
+                0,
+                len(document.text),
+                chunking_strategy=GENERIC_CHUNKING_STRATEGY,
+            )
         chunks: list[LegalChunk] = []
         hierarchy = LegalHierarchy()
         active_start: int | None = None
@@ -247,6 +274,8 @@ class PersianLegalHierarchicalChunker:
         hierarchy: LegalHierarchy,
         char_start: int,
         char_end: int,
+        *,
+        chunking_strategy: str = CHUNKING_STRATEGY,
     ) -> list[LegalChunk]:
         full_text = document.text[char_start:char_end]
         spans = split_oversized_span(
@@ -266,6 +295,7 @@ class PersianLegalHierarchicalChunker:
                     char_start + span_end,
                     part_index=part_index,
                     part_count=part_count,
+                    chunking_strategy=chunking_strategy,
                 )
             )
         return chunks
@@ -279,6 +309,7 @@ class PersianLegalHierarchicalChunker:
         *,
         part_index: int,
         part_count: int,
+        chunking_strategy: str = CHUNKING_STRATEGY,
     ) -> LegalChunk:
         text = document.text[char_start:char_end].strip()
         metadata = {
@@ -290,6 +321,8 @@ class PersianLegalHierarchicalChunker:
             "book": hierarchy.book,
             "bab": hierarchy.bab,
             "fasl": hierarchy.fasl,
+            "mabhas": hierarchy.mabhas,
+            "goftar": hierarchy.goftar,
             "article_number": hierarchy.article_number,
             "note_number": hierarchy.note_number,
             "effective_date": document.effective_date,
@@ -300,7 +333,8 @@ class PersianLegalHierarchicalChunker:
             "char_start": char_start,
             "char_end": char_end,
             "parser_name": document.parser_name,
-            "chunking_strategy": CHUNKING_STRATEGY,
+            "source_format": document.metadata.get("source_format"),
+            "chunking_strategy": chunking_strategy,
             "part_index": part_index,
             "part_count": part_count,
         }

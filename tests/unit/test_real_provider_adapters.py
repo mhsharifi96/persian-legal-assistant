@@ -162,7 +162,7 @@ def test_neo4j_adapter_links_chunks_and_returns_graph_context() -> None:
     results = repository.expand_context(["chunk-1"], depth=1, limit=5)
 
     assert len(graph.calls) == 4
-    assert graph.calls[2][1]["entity_ids"] == [entity.id]
+    assert graph.calls[2][1]["chunks"][0]["entity_ids"] == [entity.id]
     assert results[0].chunk_id == "neighbor-1"
     assert results[0].score == 0.5
     assert results[0].graph_neighbors == (entity.id,)

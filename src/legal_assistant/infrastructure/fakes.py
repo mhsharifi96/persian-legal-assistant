@@ -122,6 +122,12 @@ class InMemoryGraphRepository:
         self.chunks[chunk.id] = chunk
         self.entity_ids_by_chunk[chunk.id].update(entity_ids)
 
+    def link_chunks(
+        self, items: Sequence[tuple[LegalChunk, Sequence[str]]]
+    ) -> None:
+        for chunk, entity_ids in items:
+            self.link_chunk(chunk, entity_ids)
+
     def expand_context(
         self, chunk_ids: Sequence[str], *, depth: int, limit: int | None = None
     ) -> list[RetrievedContext]:
@@ -334,6 +340,13 @@ class InMemoryDocumentStore:
         self._documents[document.id] = document
         for chunk in chunks:
             self._chunks[chunk.id] = chunk
+
+    def save_documents(
+        self,
+        items: Sequence[tuple[LegalDocument, Sequence[LegalChunk]]],
+    ) -> None:
+        for document, chunks in items:
+            self.save_document(document, chunks)
 
     def list_documents(
         self, *, filters: dict[str, Any] | None = None

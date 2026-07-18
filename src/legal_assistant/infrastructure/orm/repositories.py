@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Sequence
 
 from legal_assistant.domain.models import (
     EvaluationRecord,
@@ -58,14 +58,16 @@ def _document_to_domain(row: LegalDocumentRow) -> LegalDocument:
 
 
 def _chunk_to_domain(row: LegalChunkRow) -> LegalChunk:
+    metadata = dict(row.metadata or {})
+    hierarchy_data = metadata.get("hierarchy") or metadata
     hierarchy = LegalHierarchy(
-        book=row.book,
-        bab=row.bab,
-        fasl=row.fasl,
-        mabhas=row.mabhas,
-        goftar=row.goftar,
-        article_number=row.article_number,
-        note_number=row.note_number,
+        book=hierarchy_data.get("book"),
+        bab=hierarchy_data.get("bab"),
+        fasl=hierarchy_data.get("fasl"),
+        mabhas=hierarchy_data.get("mabhas"),
+        goftar=hierarchy_data.get("goftar"),
+        article_number=hierarchy_data.get("article_number"),
+        note_number=hierarchy_data.get("note_number"),
     )
     return LegalChunk(
         id=row.external_id,
@@ -73,7 +75,7 @@ def _chunk_to_domain(row: LegalChunkRow) -> LegalChunk:
         text=row.text,
         hierarchy=hierarchy,
         citations=tuple(row.citations or ()),
-        metadata=dict(row.metadata or {}),
+        metadata=metadata,
     )
 
 
@@ -149,39 +151,84 @@ class OrmDocumentStore:
     def save_document(
         self, document: LegalDocument, chunks: Any = ()
     ) -> None:
-        LegalDocumentRow.objects.update_or_create(
-            external_id=document.id,
-            defaults={
-                "title": document.title,
-                "source_uri": document.source_uri,
-                "jurisdiction": document.jurisdiction,
-                "document_type": document.document_type,
-                "text": document.text,
-                "effective_date": document.effective_date,
-                "publication_date": document.publication_date,
-                "version": document.version,
-                "parser_name": document.parser_name,
-                "metadata": dict(document.metadata),
-            },
-        )
-        for chunk in chunks:
-            h = chunk.hierarchy
-            LegalChunkRow.objects.update_or_create(
-                external_id=chunk.id,
-                defaults={
-                    "document_id": chunk.document_id,
-                    "text": chunk.text,
-                    "book": h.book,
-                    "bab": h.bab,
-                    "fasl": h.fasl,
-                    "mabhas": h.mabhas,
-                    "goftar": h.goftar,
-                    "article_number": h.article_number,
-                    "note_number": h.note_number,
-                    "citations": list(chunk.citations),
-                    "metadata": dict(chunk.metadata),
+        self.save_documents([(document, chunks)])
+
+    def save_documents(
+        self,
+        items: Sequence[tuple[LegalDocument, Sequence[LegalChunk]]],
+    ) -> None:
+        documents = [
+            LegalDocumentRow(
+                external_id=document.id,
+                title=document.title,
+                source_uri=document.source_uri,
+                jurisdiction=document.jurisdiction,
+                document_type=document.document_type,
+                text=document.text,
+                effective_date=document.effective_date,
+                publication_date=document.publication_date,
+                version=document.version,
+                parser_name=document.parser_name,
+                metadata={
+                    key: value
+                    for key, value in document.metadata.items()
+                    if not key.startswith("_transient_")
                 },
             )
+            for document, _ in items
+        ]
+        LegalDocumentRow.objects.bulk_create(
+            documents,
+            batch_size=1000,
+            update_conflicts=True,
+            unique_fields=["external_id"],
+            update_fields=[
+                "title",
+                "source_uri",
+                "jurisdiction",
+                "document_type",
+                "text",
+                "effective_date",
+                "publication_date",
+                "version",
+                "parser_name",
+                "metadata",
+                "updated_at",
+            ],
+        )
+        chunk_rows = [
+            LegalChunkRow(
+                external_id=chunk.id,
+                document_id=chunk.document_id,
+                text=chunk.text,
+                citations=list(chunk.citations),
+                metadata=self._chunk_metadata(chunk),
+            )
+            for _, chunks in items
+            for chunk in chunks
+        ]
+        LegalChunkRow.objects.bulk_create(
+            chunk_rows,
+            batch_size=1000,
+            update_conflicts=True,
+            unique_fields=["external_id"],
+            update_fields=["document", "text", "citations", "metadata"],
+        )
+
+    @staticmethod
+    def _chunk_metadata(chunk: LegalChunk) -> dict[str, Any]:
+        h = chunk.hierarchy
+        metadata = dict(chunk.metadata)
+        metadata["hierarchy"] = {
+            "book": h.book,
+            "bab": h.bab,
+            "fasl": h.fasl,
+            "mabhas": h.mabhas,
+            "goftar": h.goftar,
+            "article_number": h.article_number,
+            "note_number": h.note_number,
+        }
+        return metadata
 
     def list_documents(
         self, *, filters: dict[str, Any] | None = None
@@ -202,9 +249,8 @@ class OrmDocumentStore:
         query = LegalChunkRow.objects.all()
         if document_id is not None:
             query = query.filter(document_id=document_id)
-        article = (filters or {}).get("article_number")
-        if article is not None:
-            query = query.filter(article_number=article)
+        for key, value in (filters or {}).items():
+            query = query.filter(**{f"metadata__{key}": value})
         return [_chunk_to_domain(row) for row in query]
 
 

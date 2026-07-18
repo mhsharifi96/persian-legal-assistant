@@ -61,6 +61,10 @@ class GraphRepository(Protocol):
         """Persist the source chunk and its links to extracted graph entities."""
         ...
 
+    def link_chunks(
+        self, items: Sequence[tuple[LegalChunk, Sequence[str]]]
+    ) -> None: ...
+
     def expand_context(
         self, chunk_ids: Sequence[str], *, depth: int, limit: int | None = None
     ) -> list[RetrievedContext]: ...
@@ -131,6 +135,11 @@ class DocumentStore(Protocol):
 
     def save_document(
         self, document: LegalDocument, chunks: Sequence[LegalChunk]
+    ) -> None: ...
+
+    def save_documents(
+        self,
+        items: Sequence[tuple[LegalDocument, Sequence[LegalChunk]]],
     ) -> None: ...
 
     def list_documents(

@@ -37,12 +37,27 @@ class LegalChunkAdmin(admin.ModelAdmin):
     list_display = (
         "external_id",
         "document",
-        "article_number",
-        "note_number",
+        "source_format",
+        "structure_label",
     )
-    list_filter = ("book", "bab", "fasl")
-    search_fields = ("external_id", "text", "article_number")
+    search_fields = ("external_id", "text", "metadata")
     raw_id_fields = ("document",)
+
+    @admin.display(description="Source format")
+    def source_format(self, obj: LegalChunkRow) -> str:
+        return str((obj.metadata or {}).get("source_format", ""))
+
+    @admin.display(description="Structure")
+    def structure_label(self, obj: LegalChunkRow) -> str:
+        metadata = obj.metadata or {}
+        hierarchy = metadata.get("hierarchy") or metadata
+        article = hierarchy.get("article_number")
+        note = hierarchy.get("note_number")
+        if article and note:
+            return f"ماده {article}، تبصره {note}"
+        if article:
+            return f"ماده {article}"
+        return str(metadata.get("sheet_name") or metadata.get("record_index") or "")
 
 
 @admin.register(EvaluationRecordRow)

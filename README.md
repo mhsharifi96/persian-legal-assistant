@@ -81,7 +81,7 @@ docker compose down            # add -v to also drop the database volume
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e '.[api,ai]'       # add ,postgres for Postgres: '.[api,postgres,ai]'
+pip install -e '.[api,ai,ingestion]'  # add ,postgres for Postgres
 
 # Use the real database-backed repositories for the admin/API (defaults are
 # test-safe in-memory; the app profile switches them to the ORM):
@@ -105,6 +105,51 @@ Each JSON/JSONL record looks like:
 ```json
 {"lawyer_id": "L-001", "full_name": "زهرا کریمی", "specialties": ["حقوق خانواده"], "location": "تهران", "success_rate": 0.82}
 ```
+
+Import local documents or entire folders with the same command. PDF, Word
+(`.docx`), Excel (`.xlsx`/`.xls`), and JSONL are detected by extension:
+
+```bash
+python manage.py import_documents path/to/law.pdf
+python manage.py import_documents path/to/contracts.docx path/to/data.xlsx
+python manage.py import_documents data/raw/novinlaw/documents.jsonl
+python manage.py import_documents data/raw/legal-documents/  # recursive
+```
+
+`LegalChunkRow` stores only generic chunk data (`document`, `text`,
+`citations`, and `metadata`). Source-specific structure—such as Persian legal
+hierarchy, PDF page information, spreadsheet sheet names, or JSONL record
+numbers—is kept in JSON metadata. This permits new formats without database
+columns or migrations while preserving legal lineage for retrieval.
+
+### Importing the Dadrah consultation dataset
+
+Dadrah records are public user-generated consultations, not authoritative legal
+sources. Keep the raw documents and all question/answer chunks in PostgreSQL;
+index questions in a separate Qdrant collection; optionally use Neo4j to join
+consultations, tags, answers, and lawyers.
+
+Start with a bounded ORM-only import:
+
+```bash
+python manage.py import_dadrah data/import/dadrah_output_v2 --limit 100
+```
+
+Then run the complete idempotent import. Qdrant indexes questions only by
+default; Neo4j graph construction is deterministic and does not call an LLM:
+
+```bash
+python manage.py import_dadrah data/import/dadrah_output_v2 \
+  --qdrant \
+  --neo4j \
+  --collection dadrah_consultations \
+  --allow-external-processing
+```
+
+`--allow-external-processing` is required when the configured embedding
+provider is OpenAI because consultation text is sent to that provider. Use
+`--include-answers-in-qdrant` only if unverified answer embeddings are an
+intentional part of the experiment.
 
 ### Frontend (Next.js)
 

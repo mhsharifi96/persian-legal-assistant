@@ -1,0 +1,18 @@
+{
+  "nodes": {
+    "decision": 1,
+    "external_legal_document": 1,
+    "external_legal_provision": 1,
+    "institution": 1
+  },
+  "relations": {
+    "ADJACENT_DECISION": 2,
+    "CONTAINS": 2,
+    "ISSUED_BY": 1,
+    "LINKS_TO": 4,
+    "REFERENCES": 1
+  },
+  "decision_access": {
+    "public": 1
+  }
+}

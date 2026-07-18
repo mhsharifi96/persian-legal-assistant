@@ -107,3 +107,24 @@ def test_persian_legal_chunker_handles_noisy_parser_layout() -> None:
     assert [chunk.hierarchy.note_number for chunk in chunks] == [None, "1"]
     assert all(chunk.metadata["fasl"] == "فصل دوم" for chunk in chunks)
     assert "صفحه" in chunks[0].text
+
+
+def test_chunker_falls_back_for_documents_without_legal_headings() -> None:
+    document = LegalDocument(
+        id="spreadsheet-sheet-1",
+        title="ورودی عمومی",
+        source_uri="file:///input.xlsx",
+        jurisdiction="IR",
+        document_type="document",
+        text="ستون اول\tستون دوم\n" + "داده نمونه " * 30,
+        metadata={"source_format": "xlsx", "sheet_name": "Sheet1"},
+    )
+
+    chunks = PersianLegalHierarchicalChunker(
+        max_chunk_tokens=10, chunk_overlap_tokens=2
+    ).chunk(document)
+
+    assert len(chunks) > 1
+    assert all(chunk.metadata["chunking_strategy"] == "generic_recursive_text_v1" for chunk in chunks)
+    assert all(chunk.metadata["source_format"] == "xlsx" for chunk in chunks)
+    assert all(chunk.hierarchy.article_number is None for chunk in chunks)

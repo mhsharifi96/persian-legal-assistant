@@ -58,22 +58,25 @@ class QdrantVectorStoreRepository:
         if dimensions <= 0 or any(len(vector) != dimensions for vector in vectors):
             raise ValueError("all vectors must have the same positive dimension")
         self._ensure_collection(dimensions)
-        points = [
-            models.PointStruct(
-                id=str(uuid5(NAMESPACE_URL, chunk.id)),
-                vector=vector,
-                payload={
-                    "page_content": chunk.text,
-                    "metadata": self._chunk_metadata(chunk),
-                },
+        for start in range(0, len(chunks), 256):
+            chunk_batch = chunks[start : start + 256]
+            vector_batch = vectors[start : start + 256]
+            points = [
+                models.PointStruct(
+                    id=str(uuid5(NAMESPACE_URL, chunk.id)),
+                    vector=vector,
+                    payload={
+                        "page_content": chunk.text,
+                        "metadata": self._chunk_metadata(chunk),
+                    },
+                )
+                for chunk, vector in zip(chunk_batch, vector_batch, strict=True)
+            ]
+            self._client.upsert(
+                collection_name=self._collection_name,
+                points=points,
+                wait=True,
             )
-            for chunk, vector in zip(chunks, vectors, strict=True)
-        ]
-        self._client.upsert(
-            collection_name=self._collection_name,
-            points=points,
-            wait=True,
-        )
 
     def search(
         self,

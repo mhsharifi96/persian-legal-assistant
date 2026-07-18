@@ -12,6 +12,7 @@ from legal_assistant.application.agentic.graph import LegalQAGraph
 from legal_assistant.application.evaluation.metrics import LegalAnswerEvaluator
 from legal_assistant.application.evaluation.service import EvaluationService
 from legal_assistant.application.ports import (
+    DocumentParserPort,
     DocumentStore,
     EmbeddingModelPort,
     EvaluationRepository,
@@ -27,6 +28,7 @@ from legal_assistant.application.services.lawyer_recommendation import (
 )
 from legal_assistant.config.settings import Settings
 from legal_assistant.infrastructure.fakes import (
+    FakeDocumentParser,
     FakeEmbeddingModel,
     InMemoryDocumentStore,
     InMemoryEvaluationRepository,
@@ -56,6 +58,10 @@ GRAPHSTORE_BUILDERS: dict[str, Callable[[Settings], GraphRepository]] = {
 
 LLM_BUILDERS: dict[str, Callable[[Settings], LLMPort]] = {
     "fake": lambda settings: TaggedFakeLLM(),
+}
+
+PARSER_BUILDERS: dict[str, Callable[[Settings], DocumentParserPort]] = {
+    "fake": lambda settings: FakeDocumentParser([]),
 }
 
 
@@ -107,10 +113,17 @@ def _openai_llm(settings: Settings) -> LLMPort:
     )
 
 
+def _local_document_parser(settings: Settings) -> DocumentParserPort:
+    from legal_assistant.infrastructure.parsers import LocalFileDocumentParser
+
+    return LocalFileDocumentParser(jurisdiction=settings.jurisdiction)
+
+
 EMBEDDING_BUILDERS["openai"] = _openai_embedding_model
 VECTORSTORE_BUILDERS["qdrant"] = _qdrant_vector_store
 GRAPHSTORE_BUILDERS["neo4j"] = _neo4j_graph_store
 LLM_BUILDERS["openai"] = _openai_llm
+PARSER_BUILDERS["local"] = _local_document_parser
 
 
 # --- Admin/API persistence registries ---------------------------------------
@@ -161,6 +174,13 @@ def build_lawyer_repository(settings: Settings) -> LawyerRepository:
         raise ValueError(
             f"Unsupported lawyer repo provider: {settings.lawyer_repo_provider}"
         )
+
+
+def build_document_parser(settings: Settings) -> DocumentParserPort:
+    try:
+        return PARSER_BUILDERS[settings.parser_provider](settings)
+    except KeyError:
+        raise ValueError(f"Unsupported parser provider: {settings.parser_provider}")
 
 
 def build_document_store(settings: Settings) -> DocumentStore:
