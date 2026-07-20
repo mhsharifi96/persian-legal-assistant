@@ -1,24 +1,5 @@
-# Persian Legal Assistant — local development stack.
-# Services for the current phase: Django API/admin, Postgres, Qdrant, Neo4j,
-# and the Next.js frontend. OpenAI and LangSmith remain opt-in through .env.
-
+# Local Neo4j runtime for the standalone graph import utilities.
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${DB_NAME:-persian_legal_assistant}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${DB_HOST_PORT:-5433}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-persian_legal_assistant}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   qdrant:
     image: qdrant/qdrant:v1.15.4
     volumes:
@@ -46,93 +27,6 @@ services:
       retries: 10
       start_period: 30s
 
-  web:
-    build:
-      context: .
-    command: python manage.py runserver 0.0.0.0:8000
-    environment:
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-insecure-key-change-me}
-      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,web}
-      DB_ENGINE: postgres
-      DB_NAME: ${DB_NAME:-persian_legal_assistant}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      # Real data for the delivered app (env-driven, not hard-coded in code).
-      LAWYER_REPO_PROVIDER: ${LAWYER_REPO_PROVIDER:-orm}
-      EVALUATION_REPO_PROVIDER: ${EVALUATION_REPO_PROVIDER:-orm}
-      DOCUMENT_STORE_PROVIDER: ${DOCUMENT_STORE_PROVIDER:-orm}
-      LEGAL_JURISDICTION: ${LEGAL_JURISDICTION:-IR}
-      # AI provider settings are read from the project .env file by Compose
-      # and explicitly forwarded to the Django container at runtime.
-      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
-      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gpt-5.6}
-      API_REQUIRE_REAL_LLM: ${API_REQUIRE_REAL_LLM:-false}
-      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fake}
-      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-text-embedding-3-large}
-      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-3072}
-      VECTORSTORE_PROVIDER: ${VECTORSTORE_PROVIDER:-memory}
-      GRAPHSTORE_PROVIDER: ${GRAPHSTORE_PROVIDER:-memory}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_API_BASE: ${OPENAI_API_BASE:-}
-      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
-      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-2}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
-      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-persian_legal_chunks}
-      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
-      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-please-change}
-      NEO4J_DATABASE: ${NEO4J_DATABASE:-neo4j}
-      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
-      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-persian-legal-assistant}
-      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
-      LANGSMITH_HIDE_INPUTS: ${LANGSMITH_HIDE_INPUTS:-true}
-      LANGSMITH_HIDE_OUTPUTS: ${LANGSMITH_HIDE_OUTPUTS:-true}
-    ports:
-      - "${WEB_PORT:-8008}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
-      neo4j:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  web-ui:
-    build:
-      context: ./web
-      args:
-        SITE_URL: ${SITE_URL:-http://localhost:3008}
-    environment:
-      # Server-side base URL the frontend uses to reach the API (service name).
-      API_BASE_URL: http://web:8000
-      SITE_URL: ${SITE_URL:-http://localhost:3008}
-    ports:
-      - "${UI_PORT:-3008}:3000"
-    depends_on:
-      web:
-        condition: service_healthy
-
 volumes:
-  postgres_data:
   qdrant_data:
   neo4j_data:
-
-# --- Future services (add when background jobs exist) -----------------------
-#  redis:
-#    image: redis:7
-#    ports: ["6379:6379"]
-#  worker:
-#    build: { context: . }
-#    command: python -m legal_assistant.interfaces.worker  # when it exists
-#    depends_on: [redis, postgres]

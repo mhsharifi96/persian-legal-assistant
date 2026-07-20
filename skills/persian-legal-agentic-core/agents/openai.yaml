@@ -1,4 +1,0 @@
-interface:
-  display_name: "Persian Legal Agentic Core"
-  short_description: "Phase 2 LangGraph legal reasoning core"
-  default_prompt: "Use $persian-legal-agentic-core to implement Phase 2 agentic reasoning for Persian legal QA."

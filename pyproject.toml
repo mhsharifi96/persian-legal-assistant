@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "persian-legal-assistant"
 version = "0.1.0"
-description = "Persian legal assistant architecture and GraphRAG ingestion foundation."
+description = "Persian legal data collection and Neo4j import utilities."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
@@ -18,22 +18,17 @@ dev = [
 ]
 api = [
     "django>=5.0,<6.0",
-    "djangorestframework>=3.15",
 ]
 postgres = [
     "psycopg[binary]>=3.1",
 ]
 ai = [
-    "langchain-openai>=1.0,<2.0",
-    "langchain-qdrant>=1.0,<2.0",
-    "langchain-neo4j>=0.6,<1.0",
-    "langsmith>=0.4.25,<1.0",
+    "neo4j>=5.26,<7.0",
 ]
 ingestion = [
-    "openpyxl>=3.1",
-    "pypdf>=5.0",
-    "python-docx>=1.1",
-    "xlrd>=2.0",
+    "openai>=2.0,<3.0",
+    "pypdf>=6.0,<7.0",
+    "qdrant-client>=1.15,<1.17",
 ]
 
 [tool.setuptools.packages.find]
@@ -51,11 +46,14 @@ project-includes = [
     "src/**/*.py",
     "tests/**/*.py",
 ]
-# Django/DRF-bound adapter and interface layers are dynamically typed against
-# vendor base classes (ORM managers, DRF serializers) that Pyrefly cannot model
-# without vendor stubs. AGENT.md explicitly allows these layers to import vendor
-# SDKs; the domain/application core stays fully type-checked.
+# Django's dynamically generated model managers and admin descriptors are not
+# represented accurately by the available type information. Provider-neutral
+# application code and the PDF/OpenAI/Qdrant adapters remain type-checked.
 project-excludes = [
-    "src/legal_assistant/interfaces/**",
-    "src/legal_assistant/infrastructure/orm/**",
+    "src/legal_assistant/infrastructure/documents/admin.py",
+    "src/legal_assistant/infrastructure/documents/apps.py",
+    "src/legal_assistant/infrastructure/documents/models.py",
+    "src/legal_assistant/infrastructure/documents/repository.py",
+    "src/legal_assistant/infrastructure/documents/management/**",
+    "src/legal_assistant/infrastructure/documents/migrations/**",
 ]

@@ -33,7 +33,7 @@ DATABASE_NAMES = {
 
 TYPE_LABELS: dict[str, dict[str, tuple[str, ...]]] = {
     "laws": {
-        "index": ("NovinLawIndex",),
+        "index": ("Index",),
         "category": ("LegalCategory",),
         "law_group": ("Law", "LawGroup"),
         "document": ("Law",),
@@ -42,7 +42,7 @@ TYPE_LABELS: dict[str, dict[str, tuple[str, ...]]] = {
         "unresolved_reference": ("UnresolvedLegalReference",),
     },
     "unanimity": {
-        "index": ("NovinLawIndex",),
+        "index": ("Index",),
         "year": ("DecisionYear",),
         "decision": ("LegalDecision", "UnanimityDecision"),
         "institution": ("Organization",),
@@ -56,8 +56,8 @@ TYPE_LABELS: dict[str, dict[str, tuple[str, ...]]] = {
 }
 
 DATASET_LABELS = {
-    "laws": "NovinLawLaws",
-    "unanimity": "NovinLawUnanimity",
+    "laws": "Laws",
+    "unanimity": "Unanimity",
 }
 
 

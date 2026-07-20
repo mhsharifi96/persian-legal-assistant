@@ -1,4 +1,0 @@
-interface:
-  display_name: "Persian Legal Lawyer Fetcher"
-  short_description: "Fetch and normalize public Iranian lawyer data"
-  default_prompt: "Use $persian-legal-lawyer-fetcher to fetch public lawyer directory data safely and normalize it for Django import."

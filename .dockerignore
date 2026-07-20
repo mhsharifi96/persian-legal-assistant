@@ -29,12 +29,6 @@ htmlcov
 db.sqlite3
 db.sqlite3-journal
 
-# Frontend (built in its own image with context ./web)
-web/node_modules
-web/.next
-web/out
-node_modules
-
 # Django collected/static + media
 staticfiles
 media
@@ -53,8 +47,7 @@ data/import
 *.pt
 *.pth
 
-# Vector / graph local state
-qdrant_storage
+# Graph local state
 neo4j/data
 neo4j/logs
 

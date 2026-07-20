@@ -1,9 +1,4 @@
-"""Django settings for the Persian Legal Assistant admin UI + DRF API.
-
-Django-specific concerns (apps, database, auth, DRF) live here. Provider/model
-selection stays in the typed ``legal_assistant.config.settings.Settings`` object,
-built once below so bootstrap and the API container share a single source.
-"""
+"""Minimal Django settings."""
 from __future__ import annotations
 
 import os
@@ -17,12 +12,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 _SRC = BASE_DIR / "src"
 if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
-
-from legal_assistant.config.settings import Settings  # noqa: E402
-
-# Single source of truth for provider/model selection (embeddings, LLM, repos).
-LEGAL_ASSISTANT_SETTINGS = Settings.from_env()
-
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.environ.get(name)
@@ -48,8 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    "legal_assistant.infrastructure.orm.apps.LegalOrmConfig",
+    "legal_assistant.infrastructure.documents.apps.LegalDocumentsConfig",
 ]
 
 MIDDLEWARE = [
@@ -118,18 +106,22 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
-    ],
-    # Endpoints declare their own permissions; the default is permissive for
-    # read/business endpoints, while writes require auth (see views).
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
-    ],
-    "DEFAULT_PAGINATION_CLASS": (
-        "rest_framework.pagination.LimitOffsetPagination"
-    ),
-    "PAGE_SIZE": 25,
-}
+# PDF ingestion providers. Provider SDKs are constructed in infrastructure,
+# while configuration remains environment-driven here.
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", "") or None
+EMBEDDING_PROVIDER = os.environ.get("EMBEDDING_PROVIDER", "openai")
+EMBEDDING_MODEL_NAME = os.environ.get(
+    "EMBEDDING_MODEL_NAME", "text-embedding-3-large"
+)
+EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "3072"))
+EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "64"))
+QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
+QDRANT_COLLECTION_NAME = os.environ.get(
+    "LEGAL_FILES_QDRANT_COLLECTION", "novinlaw_legal_files"
+)
+DOCUMENT_CHUNK_CHARS = int(os.environ.get("DOCUMENT_CHUNK_CHARS", "4000"))
+DOCUMENT_CHUNK_OVERLAP_CHARS = int(
+    os.environ.get("DOCUMENT_CHUNK_OVERLAP_CHARS", "300")
+)

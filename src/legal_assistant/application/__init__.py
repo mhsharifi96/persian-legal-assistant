@@ -1,1 +1,1 @@
-"""Application services and ports."""
+"""Application services and provider-independent ports."""

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Persian Legal Architecture"
-  short_description: "Clean architecture for Persian LegalTech"
-  default_prompt: "Use $persian-legal-architecture to design an extensible Persian legal assistant codebase."
