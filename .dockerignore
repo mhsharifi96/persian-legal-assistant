@@ -26,8 +26,10 @@ coverage.xml
 htmlcov
 
 # Local databases
-db.sqlite3
-db.sqlite3-journal
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
 
 # Django collected/static + media
 staticfiles

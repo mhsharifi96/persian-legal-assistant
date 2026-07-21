@@ -2,7 +2,7 @@
 """Idempotently import NovinLaw crawler SQLite graphs into Neo4j.
 
 The source SQLite databases are opened read-only. Nodes retain their stable
-NovinLaw IDs and are merged as ``LegalEntity``/``NovinLawNode`` vertices.
+NovinLaw IDs and are merged as ``LegalEntity``/``LawNode`` vertices.
 Relations retain their original type and a deterministic key so multiple raw
 references between the same pair of nodes are not collapsed.
 """
@@ -199,9 +199,9 @@ class Neo4jImporter:
             "CREATE CONSTRAINT legal_entity_id IF NOT EXISTS "
             "FOR (n:LegalEntity) REQUIRE n.entity_id IS UNIQUE",
             "CREATE CONSTRAINT novinlaw_entity_id IF NOT EXISTS "
-            "FOR (n:NovinLawNode) REQUIRE n.entity_id IS UNIQUE",
+            "FOR (n:LawNode) REQUIRE n.entity_id IS UNIQUE",
             "CREATE INDEX novinlaw_node_type IF NOT EXISTS "
-            "FOR (n:NovinLawNode) ON (n.node_type)",
+            "FOR (n:LawNode) ON (n.node_type)",
             "CREATE INDEX novinlaw_decision_number IF NOT EXISTS "
             "FOR (n:UnanimityDecision) ON (n.decision_number)",
         )
@@ -238,7 +238,7 @@ class Neo4jImporter:
         query = """
         UNWIND $rows AS row
         MERGE (node:LegalEntity {entity_id: row.id})
-        SET node:NovinLawNode,
+        SET node:LawNode,
             node.node_id = row.id,
             node.source_datasets = CASE
                 WHEN row.dataset IN coalesce(node.source_datasets, [])
@@ -278,7 +278,7 @@ class Neo4jImporter:
                     grouped.setdefault(label, []).append(row["id"])
             for label, entity_ids in grouped.items():
                 session.run(
-                    f"MATCH (node:NovinLawNode) WHERE node.entity_id IN $ids SET node:{label}",
+                    f"MATCH (node:LawNode) WHERE node.entity_id IN $ids SET node:{label}",
                     ids=entity_ids,
                 ).consume()
 
@@ -295,8 +295,8 @@ class Neo4jImporter:
                 session.run(
                     f"""
                     UNWIND $rows AS row
-                    MATCH (source:NovinLawNode {{entity_id: row.source_id}})
-                    MATCH (target:NovinLawNode {{entity_id: row.target_id}})
+                    MATCH (source:LawNode {{entity_id: row.source_id}})
+                    MATCH (target:LawNode {{entity_id: row.target_id}})
                     MERGE (source)-[edge:{relation_type} {{relation_key: row.relation_key}}]->(target)
                     SET edge.source_datasets = CASE
                             WHEN row.dataset IN coalesce(edge.source_datasets, [])
@@ -313,10 +313,10 @@ class Neo4jImporter:
     def counts(self) -> dict[str, int]:
         with self.driver.session(database=self.database) as session:
             node_count = session.run(
-                "MATCH (n:NovinLawNode) RETURN count(n) AS count"
+                "MATCH (n:LawNode) RETURN count(n) AS count"
             ).single()["count"]
             relation_count = session.run(
-                "MATCH (:NovinLawNode)-[r]->(:NovinLawNode) "
+                "MATCH (:LawNode)-[r]->(:LawNode) "
                 "WHERE r.relation_key IS NOT NULL RETURN count(r) AS count"
             ).single()["count"]
         return {"nodes": int(node_count), "relations": int(relation_count)}

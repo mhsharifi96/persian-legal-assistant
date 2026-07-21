@@ -2,6 +2,33 @@
 
 Use this file to record meaningful project-level changes. Keep entries short, dated, and useful for future agents.
 
+## 2026-07-21
+
+### Legal research architecture and Deep Agent
+
+- Reintroduced a focused clean architecture with provider-neutral evidence,
+  citation, retrieval, and agent-runtime contracts; added typed settings,
+  dependency bootstrap/lifecycle management, and a CLI entry point.
+- Added current-schema Qdrant semantic search and parameterized Neo4j graph
+  expansion with fixed relationship, depth, result, and entity-ID controls.
+- Implemented a constrained Deep Agents 0.6 runtime with four packaged legal
+  skills, a bounded tool-call loop, ephemeral skill storage, no subagents or
+  write/shell tools, authority tiers, and deterministic citation validation.
+- Added 15 network-free unit tests, including insufficient-evidence behavior,
+  hallucinated citation removal, adapter contracts, and a current Deep Agents
+  construction smoke test; Pyrefly, compileall, and Django checks pass.
+
+## 2026-07-20
+
+### Repository cleanup
+
+- Removed committed SQLite runtime databases and a crawler cookie file; expanded
+  ignore rules for SQLite sidecars and crawler output directories.
+- Declared the HTTP, HTML parsing, fuzzy-matching, and browser automation crawler
+  dependencies under the `crawlers` optional dependency group.
+- Removed stale bytecode/test caches and aligned repository guidance with the
+  reduced application that remains after the 2026-07-20 code removal.
+
 ## 2026-07-18
 
 ### Real OpenAI and GraphRAG Providers

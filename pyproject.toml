@@ -5,16 +5,22 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "persian-legal-assistant"
 version = "0.1.0"
-description = "Persian legal data collection and Neo4j import utilities."
+description = "Citation-grounded Persian legal research, ingestion, and graph utilities."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    "beautifulsoup4>=4.13",
     "pyrefly>=1.1.1",
     "pytest>=8.0",
+]
+crawlers = [
+    "beautifulsoup4>=4.13",
+    "httpx>=0.28,<1.0",
+    "lxml>=5.0,<7.0",
+    "playwright>=1.50,<2.0",
+    "rapidfuzz>=3.0,<4.0",
 ]
 api = [
     "django>=5.0,<6.0",
@@ -29,10 +35,23 @@ ingestion = [
     "openai>=2.0,<3.0",
     "pypdf>=6.0,<7.0",
     "qdrant-client>=1.15,<1.17",
+    "tiktoken>=0.9,<1.0",
 ]
+agent = [
+    "deepagents>=0.6.12,<0.7.0",
+    "langchain-openai>=1.3.5,<2.0.0",
+    "neo4j>=5.26,<7.0",
+    "qdrant-client>=1.15,<1.17",
+]
+
+[project.scripts]
+legal-assistant-ask = "legal_assistant.interfaces.cli.ask:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"legal_assistant.infrastructure.agents" = ["skills/*/SKILL.md"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -10,8 +10,7 @@ This document describes the intended repository structure for the Persian Legal 
 ├── README.md
 ├── memory.md
 ├── project_structure.md
-├── .gitignore
-└── skills/
+└── .gitignore
 ```
 
 ## Intended Application Layout
@@ -54,6 +53,38 @@ Prefer this layout unless a later architectural decision replaces it:
 ```
 
 If the project uses a different package manager or Django layout, keep the same boundaries even if paths differ.
+
+## Implemented Agent Layout
+
+The current legal research path is intentionally smaller than the full target
+layout and now uses these concrete modules:
+
+```text
+src/legal_assistant/
+├── domain/
+│   └── research.py                 # evidence, authority, citation, answer
+├── application/
+│   ├── ports.py                    # provider-neutral read/runtime ports
+│   ├── research.py                 # capped retrieval use case
+│   └── agent.py                    # validated agent entry point
+├── infrastructure/
+│   ├── agents/
+│   │   ├── deepagents_runtime.py   # constrained orchestration adapter
+│   │   └── skills/*/SKILL.md       # progressively loaded legal policies
+│   └── retrieval/
+│       ├── qdrant.py               # semantic graph/PDF payload search
+│       └── neo4j.py                # parameterized allowlisted traversal
+├── config/
+│   ├── settings.py                 # typed environment configuration
+│   └── bootstrap.py                # dependency construction/lifecycle
+└── interfaces/
+    └── cli/ask.py                  # legal-assistant-ask
+```
+
+The ingestion code under `application/document_ingestion.py` and
+`infrastructure/documents/` remains intact. Agent retrieval reads the current
+flat Qdrant payloads and the current `LegalEntity` Neo4j schema; it does not
+reintroduce the removed `LegalChunk-[:MENTIONS]->LegalEntity` graph.
 
 ## Layer Responsibilities
 
@@ -177,8 +208,6 @@ Integration tests may require Docker Compose and should be marked explicitly.
 
 ## Docker Layout
 
-When Docker support is added, use `$persian-legal-docker-runtime`.
-
 Expected files:
 
 ```text
@@ -201,32 +230,6 @@ neo4j
 ```
 
 Only add `worker` and `redis` once background jobs are implemented.
-
-## Skill Layout
-
-Project-local skills live here:
-
-```text
-skills/
-├── persian-legal-architecture/
-├── persian-legal-graphrag-ingestion/
-├── persian-legal-agentic-core/
-├── persian-legal-evaluation-recommender/
-├── persian-legal-docker-runtime/
-├── persian-legal-admin-api/
-├── persian-legal-nextjs-ui/
-└── persian-legal-lawyer-fetcher/
-```
-
-Each skill should contain:
-
-```text
-SKILL.md
-agents/openai.yaml
-references/
-```
-
-Do not add README files inside individual skill folders unless there is a strong reason; put detailed guidance in `references/`.
 
 ## Naming Conventions
 

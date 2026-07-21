@@ -24,6 +24,9 @@ class HashingEmbeddingProvider:
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
         return [self._embed_one(text) for text in texts]
 
+    def embed_query(self, text: str) -> list[float]:
+        return self._embed_one(text)
+
     def _embed_one(self, text: str) -> list[float]:
         vector = [0.0] * self._dimension
         for token in re.findall(r"\w+", text.casefold(), flags=re.UNICODE):
@@ -51,6 +54,11 @@ class OpenAIEmbeddingProvider:
         self._dimension = dimension
         self._batch_size = batch_size
         self._client = client or OpenAI(api_key=api_key, base_url=base_url or None)
+        self._owns_client = client is None
+
+    def close(self) -> None:
+        if self._owns_client:
+            self._client.close()
 
     @property
     def dimension(self) -> int:
@@ -66,3 +74,9 @@ class OpenAIEmbeddingProvider:
             )
             output.extend(item.embedding for item in sorted(response.data, key=lambda x: x.index))
         return output
+
+    def embed_query(self, text: str) -> list[float]:
+        vectors = self.embed([text])
+        if len(vectors) != 1:
+            raise ValueError("Embedding provider returned an unexpected vector count")
+        return vectors[0]

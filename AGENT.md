@@ -8,15 +8,9 @@ Design and evaluation of an intelligent Persian legal question-answering assista
 
 The system should support Iranian legal document ingestion, Agentic RAG, citation-grounded Persian answers, lawyer recommendation, and evaluation against hallucination and retrieval quality.
 
-## Use Local Codex Skills
+## Repository Context
 
-Before implementing major features, inspect the local skill package:
-
-```text
-skills/
-```
-
-Also read:
+Before implementing major features, read:
 
 ```text
 memory.md
@@ -25,18 +19,8 @@ project_structure.md
 
 Use `memory.md` for persistent decisions and current phase status. Use `project_structure.md` for expected directories, module responsibilities, and naming conventions.
 
-Use these skills as project-specific instructions:
-
-- `$persian-legal-architecture`: repository, port, adapter, dependency injection, configuration, and testing architecture.
-- `$persian-legal-graphrag-ingestion`: Phase 1, legal document parsing, hierarchical chunking, embeddings, Qdrant, Neo4j, and HybridRetriever.
-- `$persian-legal-agentic-core`: Phase 2, LangGraph reasoning core, query decomposition, retrieval, judge loop, and Persian answer generation.
-- `$persian-legal-evaluation-recommender`: Phase 3, lawyer recommendation and RAGAS-style evaluation.
-- `$persian-legal-docker-runtime`: Docker and Docker Compose setup for local development, testing, and service orchestration.
-- `$persian-legal-admin-api`: Django admin UI and DRF API over real persisted data (ORM repositories, no fake adapters in the delivered app).
-- `$persian-legal-nextjs-ui`: Next.js (App Router, TypeScript) RTL/Persian web frontend that consumes the DRF API over HTTP against real data.
-- `$persian-legal-lawyer-fetcher`: conservative public lawyer-directory collection, normalization to canonical JSONL, resumable checkpoints, and Django import.
-
-If a task touches external services or replaceable providers, apply `$persian-legal-architecture` first.
+The former project-local skill package has been removed. Keep the architecture
+rules in this file as the source of truth.
 
 ## Architecture Rules
 
@@ -150,8 +134,6 @@ Use RAGAS-style metrics for context precision, faithfulness, answer relevancy, a
 - Do not silence Pyrefly errors with ignore comments unless there is a documented reason.
 
 ## Docker Development
-
-Use `$persian-legal-docker-runtime` when adding or changing Docker support.
 
 The Docker setup should make local development repeatable while keeping provider choices configurable. Do not bake secrets, API keys, `.env` files, downloaded model caches, or large datasets into images.
 
